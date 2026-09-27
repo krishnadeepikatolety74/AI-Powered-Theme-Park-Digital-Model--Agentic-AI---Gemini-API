@@ -1,0 +1,391 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}What-If Simulations — ParkOps{% endblock %}
+
+{% block dashboard_content %}
+<div class="dash-welcome-banner" style="margin-bottom: 1.5rem;">
+  <div class="welcome-text-side">
+    <h1>What-If Simulation Studio</h1>
+    <p>Simulate crowd surges, ride outages, and weather shocks in the Digital Model sandbox before executing in the real world.</p>
+  </div>
+  <div class="welcome-badge-side">
+    <span class="live-pill"><span class="pulse-dot"></span> Predictive Engine Active</span>
+  </div>
+</div>
+
+<!-- PRESET SCENARIOS QUICK BUTTONS -->
+<div class="dash-card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+    <h3 style="font-size: 1rem; color: var(--navy-dark); margin: 0;">Instant Scenario Presets</h3>
+    <span style="font-size: 0.8rem; color: var(--navy-muted);">1-Click Sandbox Test Scenarios</span>
+  </div>
+  <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+    <button class="filter-chip" onclick="loadScenario(5000, '5 PM - 6 PM', 'All Rides Operational', 'Sunny')">⚡ +5,000 Evening Rush</button>
+    <button class="filter-chip" onclick="loadScenario(3500, '2 PM - 3 PM', 'Roller Coaster Breakdown', 'Sunny')">🎢 Coaster Outage Spillover</button>
+    <button class="filter-chip" onclick="loadScenario(6000, '1 PM - 2 PM', 'Reduced Capacity', 'Rain')">🌧️ Sudden Rainstorm (Indoor Migration)</button>
+    <button class="filter-chip" onclick="loadScenario(10000, 'All-Day Peak', 'All Rides Operational', 'Heatwave')">🔥 Holiday Weekend Peak</button>
+  </div>
+</div>
+
+<!-- SIMULATION WORKSPACE: CONTROLS & RESULTS -->
+<div style="display: grid; grid-template-columns: 1fr 1.25fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+  
+  <!-- LEFT: PARAMETER CONFIGURATION -->
+  <div class="dash-card">
+    <div class="card-header-row" style="margin-bottom: 1rem;">
+      <h2 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0;">Simulation Parameters</h2>
+      <span style="font-size: 0.8rem; color: var(--navy-muted);">Digital Model Inputs</span>
+    </div>
+
+    <form id="fullSimForm" onsubmit="executeSimulation(event)">
+      <!-- Additional Visitors -->
+      <div style="margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">
+          <label for="simVisitors">Additional Influx (Guests)</label>
+          <span id="simVisitorsVal" style="color: var(--pink-primary); font-weight: 700;">+5,000</span>
+        </div>
+        <input type="range" id="simVisitors" min="500" max="15000" step="500" value="5000" style="width: 100%; accent-color: var(--pink-primary);" oninput="document.getElementById('simVisitorsVal').innerText = '+' + Number(this.value).toLocaleString()">
+      </div>
+
+      <!-- Time Window -->
+      <div style="margin-bottom: 1.25rem;">
+        <label for="simTime" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--navy-dark);">Time Window</label>
+        <select id="simTime" style="width: 100%; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.85rem;">
+          <option value="5 PM - 6 PM">5:00 PM – 6:00 PM (Evening Surge)</option>
+          <option value="11 AM - 12 PM">11:00 AM – 12:00 PM (Morning Peak)</option>
+          <option value="1 PM - 2 PM">1:00 PM – 2:00 PM (Lunch Rush)</option>
+          <option value="8 PM - 9 PM">8:00 PM – 9:00 PM (Fireworks Finale)</option>
+          <option value="All-Day Peak">All-Day Peak (Holiday Event)</option>
+        </select>
+      </div>
+
+      <!-- Ride Availability -->
+      <div style="margin-bottom: 1.25rem;">
+        <label for="simRides" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--navy-dark);">Ride Fleet State</label>
+        <select id="simRides" style="width: 100%; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.85rem;">
+          <option value="All Rides Operational">All Rides Operational (100%)</option>
+          <option value="Roller Coaster Breakdown">Roller Coaster Breakdown (Critical Outage)</option>
+          <option value="Reduced Capacity">Reduced Capacity (Routine Sensor Checks)</option>
+          <option value="Multiple Ride Breakdown">Multiple Ride Breakdown (Emergency Protocol)</option>
+        </select>
+      </div>
+
+      <!-- Weather Condition -->
+      <div style="margin-bottom: 1.5rem;">
+        <label for="simWeather" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--navy-dark);">Weather Condition</label>
+        <select id="simWeather" style="width: 100%; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.85rem;">
+          <option value="Sunny">Sunny & Clear (24°C)</option>
+          <option value="Rain">Sudden Heavy Rain (18°C)</option>
+          <option value="Heatwave">Extreme Heatwave (36°C)</option>
+          <option value="Thunderstorm">Severe Thunderstorm (Outdoor Ride Halt)</option>
+        </select>
+      </div>
+
+      <button type="submit" id="simSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 0.8rem; font-size: 0.95rem; font-weight: 700;">
+        ⚡ Run Virtual Simulation
+      </button>
+    </form>
+  </div>
+
+  <!-- RIGHT: REAL-TIME SIMULATION DIAGNOSTICS & AI RECOMMENDATION -->
+  <div class="dash-card" style="display: flex; flex-direction: column;">
+    <div class="card-header-row" style="margin-bottom: 1rem;">
+      <div>
+        <h2 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0;">Predicted Impact Telemetry</h2>
+        <p style="font-size: 0.8rem; color: var(--navy-muted); margin: 0.2rem 0 0 0;">Computed via Digital Model Neural Engine</p>
+      </div>
+      <span id="simRiskBadge" class="badge-status badge-high">Moderate Surge</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+      <div style="background: var(--bg-soft-blue); padding: 1rem; border-radius: 10px;">
+        <div style="font-size: 0.75rem; color: var(--navy-muted); font-weight: 600;">PREDICTED TOTAL VISITORS</div>
+        <div id="resVisitors" style="font-size: 1.5rem; font-weight: 800; color: var(--navy-dark); margin: 0.25rem 0;">17,450</div>
+        <div style="font-size: 0.75rem; color: var(--pink-primary); font-weight: 600;">+5,000 simulated increase</div>
+      </div>
+
+      <div style="background: var(--bg-soft-blue); padding: 1rem; border-radius: 10px;">
+        <div style="font-size: 0.75rem; color: var(--navy-muted); font-weight: 600;">PREDICTED AVG QUEUE</div>
+        <div id="resQueue" style="font-size: 1.5rem; font-weight: 800; color: var(--pink-primary); margin: 0.25rem 0;">34 min</div>
+        <div style="font-size: 0.75rem; color: var(--navy-muted);">↑ +10 min from baseline</div>
+      </div>
+    </div>
+
+    <!-- Bottleneck & Facility summary -->
+    <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;">
+      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(0,0,0,0.05);">
+        <span style="color: var(--navy-muted);">Primary Bottleneck Zone:</span>
+        <strong id="resBottleneck" style="color: var(--navy-dark);">Main Entrance & Food Courts</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(0,0,0,0.05);">
+        <span style="color: var(--navy-muted);">Facility Load Impact:</span>
+        <strong id="resFacility" style="color: var(--navy-dark); text-align: right; max-width: 60%;">High (+20% staffing required)</strong>
+      </div>
+    </div>
+
+    <!-- AI Recommendation block -->
+    <div style="background: #fdf2f8; border-left: 4px solid var(--pink-primary); padding: 1rem; border-radius: 8px; margin-top: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--pink-primary); text-transform: uppercase;">AI Decision Recommendation</span>
+        <span id="aiEngineSource" style="font-size: 0.7rem; color: var(--navy-muted);">ParkOps Neural Agent</span>
+      </div>
+      <p id="resRecommendation" style="font-size: 0.85rem; color: var(--navy-dark); margin: 0; line-height: 1.45;">
+        Redistribute visitors toward low-density zones (Fantasy Land / Water World) and promote alternative rides via in-app push notifications.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<!-- 🤖 AI AGENT ANALYSIS SECTION (INTEGRATED WITH SINGLE AI AGENT) -->
+<div class="dash-card" style="margin-bottom: 1.5rem; background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%); border: 1.5px solid #fce7ec;">
+  <div class="card-header-row" style="margin-bottom: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.6rem;">
+      <span style="font-size: 1.3rem;">🤖</span>
+      <h2 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0;">AI Agent Analysis</h2>
+    </div>
+    <span id="agentAnalysisBadge" class="badge-status badge-operational"><span class="pulse-dot"></span> Single AI Agent Connected</span>
+  </div>
+
+  <p id="agentSummaryText" style="font-size: 0.9rem; color: var(--navy-dark); margin-bottom: 1rem; line-height: 1.5;">
+    The Digital Model predicts increased visitor pressure during the selected time window.
+  </p>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+    <div style="background: #fff8f8; border-radius: 12px; padding: 1rem; border-left: 3px solid var(--primary-pink);">
+      <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary-pink); text-transform: uppercase; margin-bottom: 0.5rem;">
+        The highest congestion risk is around:
+      </div>
+      <ul id="agentCongestionList" style="margin: 0; padding-left: 1.2rem; font-size: 0.85rem; color: var(--navy-dark); line-height: 1.6;">
+        <li>Main Entrance</li>
+        <li>Food Courts</li>
+        <li>Roller Coaster Zone</li>
+      </ul>
+    </div>
+
+    <div style="background: #f0fdf4; border-radius: 12px; padding: 1rem; border-left: 3px solid #16a34a;">
+      <div style="font-size: 0.8rem; font-weight: 700; color: #16a34a; text-transform: uppercase; margin-bottom: 0.5rem;">
+        Recommended action:
+      </div>
+      <p id="agentActionText" style="margin: 0; font-size: 0.85rem; color: var(--navy-dark); line-height: 1.5;">
+        Redistribute visitors toward lower-density attractions and increase staffing at high-demand facilities.
+      </p>
+    </div>
+  </div>
+
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 0.85rem;">
+    <span style="font-size: 0.8rem; color: var(--navy-muted);">Analyzed by ParkOps Intelligence Agent (Digital Model Engine)</span>
+    <a href="{{ url_for('ai_agent') }}" class="btn btn-primary" style="padding: 0.55rem 1.2rem; font-size: 0.85rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;">
+      Open AI Agent →
+    </a>
+  </div>
+</div>
+
+<!-- BEFORE VS AFTER COMPARISON CHARTS -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+  <div class="dash-card">
+    <div class="card-header-row" style="margin-bottom: 0.75rem;">
+      <h2 style="font-size: 1.05rem; color: var(--navy-dark); margin: 0;">Visitor Flow Comparison (Before vs After)</h2>
+    </div>
+    <div style="height: 220px;">
+      <canvas id="simFlowChart"></canvas>
+    </div>
+  </div>
+
+  <div class="dash-card">
+    <div class="card-header-row" style="margin-bottom: 0.75rem;">
+      <h2 style="font-size: 1.05rem; color: var(--navy-dark); margin: 0;">Queue Time Impact by Zone (min)</h2>
+    </div>
+    <div style="height: 220px;">
+      <canvas id="simZoneQueueChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORICAL SIMULATION LOG -->
+<div class="dash-card" style="padding: 0; overflow: hidden;">
+  <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <h2 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0;">Simulation Run History</h2>
+      <p style="font-size: 0.8rem; color: var(--navy-muted); margin: 0.2rem 0 0 0;">Recent sandbox executions recorded in SQLite</p>
+    </div>
+  </div>
+
+  <table class="dash-table" style="width: 100%; text-align: left; border-collapse: collapse;">
+    <thead>
+      <tr style="background: var(--bg-soft-blue); color: var(--navy-dark); font-size: 0.85rem;">
+        <th style="padding: 1rem 1.5rem;">Scenario</th>
+        <th style="padding: 1rem;">Time Window</th>
+        <th style="padding: 1rem;">Weather</th>
+        <th style="padding: 1rem;">Predicted Visitors</th>
+        <th style="padding: 1rem;">Queue Time</th>
+        <th style="padding: 1rem 1.5rem;">Bottleneck Zone</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in history %}
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.04);">
+        <td style="padding: 1rem 1.5rem; font-weight: 700; color: var(--navy-dark);">{{ h.scenario_name }}</td>
+        <td style="padding: 1rem; color: var(--navy-muted); font-size: 0.85rem;">{{ h.time_period }}</td>
+        <td style="padding: 1rem; color: var(--navy-muted); font-size: 0.85rem;">{{ h.weather }}</td>
+        <td style="padding: 1rem; font-weight: 700; color: var(--navy-dark);">{{ "{:,}".format(h.predicted_visitors) }}</td>
+        <td style="padding: 1rem; font-weight: 700; color: var(--pink-primary);">{{ h.predicted_queue_time }} min</td>
+        <td style="padding: 1rem 1.5rem; color: var(--navy-muted); font-size: 0.85rem;">{{ h.bottleneck_zone }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" style="padding: 1.5rem; text-align: center; color: var(--navy-muted);">No simulation history yet. Execute a simulation above to record results!</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+let simFlowChartInstance = null;
+let simZoneQueueChartInstance = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Init comparison charts
+  const ctx1 = document.getElementById('simFlowChart').getContext('2d');
+  simFlowChartInstance = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels: ['12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM', '7 PM'],
+      datasets: [
+        {
+          label: 'Baseline (Current)',
+          data: [10200, 11800, 12450, 12000, 11500, 10800, 9500, 7200],
+          borderColor: '#60a5fa',
+          backgroundColor: 'rgba(96, 165, 250, 0.1)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2
+        },
+        {
+          label: 'Simulated Surge',
+          data: [10200, 11800, 12450, 14200, 16800, 17450, 15300, 11000],
+          borderColor: '#ff6b8b',
+          backgroundColor: 'rgba(255, 107, 139, 0.15)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+      scales: { y: { grid: { color: 'rgba(0,0,0,0.04)' } }, x: { grid: { display: false } } }
+    }
+  });
+
+  const ctx2 = document.getElementById('simZoneQueueChart').getContext('2d');
+  simZoneQueueChartInstance = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: ['Main Entrance', 'Adventure Zone', 'Fantasy Land', 'Water World', 'Food Court'],
+      datasets: [
+        {
+          label: 'Current Queue (min)',
+          data: [15, 32, 18, 12, 20],
+          backgroundColor: '#a78bfa',
+          borderRadius: 6
+        },
+        {
+          label: 'Simulated Queue (min)',
+          data: [28, 54, 30, 18, 42],
+          backgroundColor: '#ff6b8b',
+          borderRadius: 6
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+      scales: { y: { grid: { color: 'rgba(0,0,0,0.04)' } }, x: { grid: { display: false } } }
+    }
+  });
+});
+
+function loadScenario(visitors, time, rides, weather) {
+  document.getElementById('simVisitors').value = visitors;
+  document.getElementById('simVisitorsVal').innerText = '+' + visitors.toLocaleString();
+  document.getElementById('simTime').value = time;
+  document.getElementById('simRides').value = rides;
+  document.getElementById('simWeather').value = weather;
+  executeSimulation();
+}
+
+function executeSimulation(e) {
+  if(e) e.preventDefault();
+  const btn = document.getElementById('simSubmitBtn');
+  btn.innerText = '⏳ Running Neural Simulation...';
+  btn.disabled = true;
+
+  const payload = {
+    additional_visitors: parseInt(document.getElementById('simVisitors').value),
+    time_period: document.getElementById('simTime').value,
+    ride_availability: document.getElementById('simRides').value,
+    weather_condition: document.getElementById('simWeather').value
+  };
+
+  fetch('/api/simulation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(data => {
+    btn.innerText = '⚡ Run Virtual Simulation';
+    btn.disabled = false;
+
+    document.getElementById('resVisitors').innerText = Number(data.predicted_visitors).toLocaleString();
+    document.getElementById('resQueue').innerText = data.predicted_queue + ' min';
+    document.getElementById('resBottleneck').innerText = data.bottleneck;
+    document.getElementById('resFacility').innerText = data.facility_demand;
+    document.getElementById('resRecommendation').innerText = data.recommendation;
+    document.getElementById('simRiskBadge').innerText = data.risk_level;
+    document.getElementById('aiEngineSource').innerText = data.ai_source || 'ParkOps Neural Agent';
+
+    // Update 🤖 AI Agent Analysis section
+    if(data.agent_analysis) {
+      if(document.getElementById('agentSummaryText')) {
+        document.getElementById('agentSummaryText').innerText = data.agent_analysis.summary || 'The Digital Model predicts increased visitor pressure during the selected time window.';
+      }
+      if(document.getElementById('agentCongestionList') && data.agent_analysis.affected_zones) {
+        document.getElementById('agentCongestionList').innerHTML = data.agent_analysis.affected_zones.map(z => `<li>${z}</li>`).join('');
+      }
+      if(document.getElementById('agentActionText')) {
+        document.getElementById('agentActionText').innerText = data.agent_analysis.recommended_action || data.recommendation;
+      }
+    } else {
+      if(document.getElementById('agentActionText')) {
+        document.getElementById('agentActionText').innerText = data.recommendation;
+      }
+    }
+
+    // Update charts dynamically
+    if(simFlowChartInstance) {
+      const peak = data.predicted_visitors;
+      simFlowChartInstance.data.datasets[1].data = [10200, 11800, 12450, peak - 3200, peak - 600, peak, peak - 2100, peak - 6400];
+      simFlowChartInstance.update();
+    }
+    if(simZoneQueueChartInstance) {
+      const q = data.predicted_queue;
+      simZoneQueueChartInstance.data.datasets[1].data = [Math.round(q * 0.8), Math.round(q * 1.5), Math.round(q * 0.9), Math.round(q * 0.5), Math.round(q * 1.2)];
+      simZoneQueueChartInstance.update();
+    }
+  })
+  .catch(err => {
+    btn.innerText = '⚡ Run Virtual Simulation';
+    btn.disabled = false;
+    console.error(err);
+  });
+}
+</script>
+{% endblock %}

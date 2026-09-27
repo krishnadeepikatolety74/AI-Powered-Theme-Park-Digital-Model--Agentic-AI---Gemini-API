@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Dashboard{% endblock %} — ParkOps Theme Park Digital Model</title>
+  <meta name="description" content="ParkOps Theme Park Digital Model Command & Simulation Operations.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dash-page-container">
+
+  <!-- TOP HEADER BAR (CONSISTENT ACROSS ALL PAGES) -->
+  <header class="dash-topbar">
+    <a href="{{ url_for('home') }}" class="brand-group">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <circle cx="12" cy="12" r="3"></circle>
+          <line x1="12" y1="2" x2="12" y2="22"></line>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+          <line x1="19.07" y1="4.93" x2="4.93" y2="19.07"></line>
+        </svg>
+      </div>
+      <div class="brand-text-wrap">
+        <div class="brand-title" style="font-size: 1.35rem;">Park<span>Ops</span></div>
+        <div class="brand-tagline">A Smarter, Happier Theme Park</div>
+      </div>
+    </a>
+
+    <div class="dash-user-section">
+      <!-- Dataset Status Indicator Badge -->
+      <span class="live-pill" style="font-size: 0.78rem;">
+        <span class="pulse-dot" style="background: {% if park_state and park_state.has_data %}#10b981{% else %}#f59e0b{% endif %};"></span>
+        {% if park_state and park_state.has_data %}
+          Dataset Active: {{ park_state.park.name }}
+        {% else %}
+          Waiting for Dataset Upload
+        {% endif %}
+      </span>
+
+      <!-- Notification Bell -->
+      <button class="notif-bell-btn" aria-label="Notifications" onclick="alert('ParkOps Status: {% if park_state and park_state.has_data %}Digital Model synchronized with active dataset.{% else %}No dataset loaded. Upload an Excel dataset in Park Data.{% endif %}')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+        <span class="notif-badge-pill">1</span>
+      </button>
+
+      <!-- User Profile Widget -->
+      <div class="user-profile-widget">
+        <div class="user-avatar-img">
+          {% if user and user['full_name'] %}
+            {{ user['full_name'].split()[0][0] | upper }}
+          {% elif session.get('user_name') %}
+            {{ session.get('user_name').split()[0][0] | upper }}
+          {% else %}
+            O
+          {% endif %}
+        </div>
+        <div class="user-meta-wrap">
+          <div class="user-meta-name">Hi, {% if user and user['full_name'] %}{{ user['full_name'].split()[0] }}{% elif session.get('user_name') %}{{ session.get('user_name').split()[0] }}{% else %}Operator{% endif %}</div>
+          <div class="user-meta-role">{% if user and user['role'] %}{{ user['role'] }}{% elif session.get('user_role') %}{{ session.get('user_role') }}{% else %}Operator{% endif %}</div>
+        </div>
+        <a href="{{ url_for('logout') }}" title="Sign Out" style="color: var(--navy-muted); margin-left: 0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- DASHBOARD MAIN BODY (SIDEBAR + CONTENT) -->
+  <div class="dash-body-grid">
+    
+    <!-- LEFT SIDEBAR NAVIGATION (RESTORED SECTIONS) -->
+    <aside class="dash-sidebar">
+      <a href="{{ url_for('dashboard') }}" class="dash-nav-item {{ 'active' if active_page == 'dashboard' else '' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        <span>Dashboard</span>
+      </a>
+
+      <a href="{{ url_for('park_overview') }}" class="dash-nav-item {{ 'active' if active_page == 'park-overview' else '' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+        <span>Park Overview</span>
+      </a>
+
+      <a href="{{ url_for('rides') }}" class="dash-nav-item {{ 'active' if active_page == 'rides' else '' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+        <span>Rides</span>
+      </a>
+
+      <a href="{{ url_for('visitors') }}" class="dash-nav-item {{ 'active' if active_page == 'visitors' else '' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <span>Visitors</span>
+      </a>
+
+      <a href="{{ url_for('facilities') }}" class="dash-nav-item {{ 'active' if active_page == 'facilities' else '' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        <span>Facilities</span>
+      </a>
+
+      <a href="{{ url_for('park_data') }}" class="dash-nav-item {{ 'active' if active_page == 'park-data' else '' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        <span>Park Data</span>
+      </a>
+
+      <a href="{{ url_for('ai_agent') }}" class="dash-nav-item {{ 'active' if active_page == 'ai-agent' else '' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
+        <span>AI Agent</span>
+      </a>
+
+      <a href="{{ url_for('reports') }}" class="dash-nav-item {{ 'active' if active_page == 'reports' else '' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+        <span>Reports</span>
+      </a>
+
+      <a href="{{ url_for('settings') }}" class="dash-nav-item {{ 'active' if active_page == 'settings' else '' }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span>Settings</span>
+      </a>
+    </aside>
+
+    <!-- RIGHT MAIN CONTENT WRAPPER -->
+    <main class="dash-content-area">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert-box alert-{{ 'danger' if category == 'danger' or category == 'warning' else 'success' }}" style="margin-bottom: 1rem;">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% block dashboard_content %}{% endblock %}
+    </main>
+
+  </div>
+
+  <!-- UPLOAD PROCESSING PIPELINE MODAL (SECTION 1-3 OF SPEC) -->
+  <div id="uploadPipelineModal" class="upload-pipeline-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); z-index: 99999; justify-content: center; align-items: center; padding: 1.25rem; backdrop-filter: blur(4px);">
+    <div style="background: #ffffff; border-radius: 20px; max-width: 560px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); border: 1.5px solid #e2e8f0; animation: modalPop 0.25s ease-out;">
+      
+      <!-- Modal Header -->
+      <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 1.1rem 1.4rem; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; overflow: hidden;">
+          <div style="font-size: 1.5rem; background: #e0e7ff; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            📁
+          </div>
+          <div style="overflow: hidden;">
+            <h3 id="pipelineFileNameLabel" style="font-size: 1.02rem; font-weight: 800; color: var(--navy-dark); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ParkOps_Project_Based_Dataset.xlsx
+            </h3>
+            <span id="pipelineHeaderSub" style="font-size: 0.78rem; font-weight: 700; color: var(--navy-muted);">
+              Processing Dataset...
+            </span>
+          </div>
+        </div>
+        <button type="button" id="pipelineCloseX" onclick="closePipelineModal()" style="display: none; background: transparent; border: none; font-size: 1.3rem; color: #64748b; cursor: pointer; padding: 0.2rem 0.5rem; border-radius: 6px;">✕</button>
+      </div>
+
+      <!-- Modal Body: Pipeline Stages -->
+      <div id="pipelineStagesList" style="padding: 1.25rem 1.4rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.88rem;">
+        
+        <!-- Stage 1 -->
+        <div id="stage-1-box" class="pipeline-stage-card stage-pending">
+          <div class="stage-header-row">
+            <span class="stage-num-badge">①</span>
+            <span class="stage-title">FILE RECEIVED</span>
+            <span class="stage-status-icon" id="stage-1-icon">○</span>
+          </div>
+          <div class="stage-sub-list" id="stage-1-subs"></div>
+        </div>
+
+        <!-- Stage 2 -->
+        <div id="stage-2-box" class="pipeline-stage-card stage-pending">
+          <div class="stage-header-row">
+            <span class="stage-num-badge">②</span>
+            <span class="stage-title">READING DATA</span>
+            <span class="stage-status-icon" id="stage-2-icon">○</span>
+          </div>
+          <div class="stage-sub-list" id="stage-2-subs"></div>
+        </div>
+
+        <!-- Stage 3 -->
+        <div id="stage-3-box" class="pipeline-stage-card stage-pending">
+          <div class="stage-header-row">
+            <span class="stage-num-badge">③</span>
+            <span class="stage-title">VALIDATING DATA</span>
+            <span class="stage-status-icon" id="stage-3-icon">○</span>
+          </div>
+          <div class="stage-sub-list" id="stage-3-subs"></div>
+        </div>
+
+        <!-- Stage 4 -->
+        <div id="stage-4-box" class="pipeline-stage-card stage-pending">
+          <div class="stage-header-row">
+            <span class="stage-num-badge">④</span>
+            <span class="stage-title">IMPORTING TO DATABASE</span>
+            <span class="stage-status-icon" id="stage-4-icon">○</span>
+          </div>
+          <div class="stage-sub-list" id="stage-4-subs"></div>
+        </div>
+
+        <!-- Stage 5 -->
+        <div id="stage-5-box" class="pipeline-stage-card stage-pending">
+          <div class="stage-header-row">
+            <span class="stage-num-badge">⑤</span>
+            <span class="stage-title">BUILDING DIGITAL MODEL</span>
+            <span class="stage-status-icon" id="stage-5-icon">○</span>
+          </div>
+          <div class="stage-sub-list" id="stage-5-subs"></div>
+        </div>
+
+        <!-- Stage 6 -->
+        <div id="stage-6-box" class="pipeline-stage-card stage-pending">
+          <div class="stage-header-row">
+            <span class="stage-num-badge">⑥</span>
+            <span class="stage-title">SYNCHRONIZING PARKOPS</span>
+            <span class="stage-status-icon" id="stage-6-icon">○</span>
+          </div>
+          <div class="stage-sub-list" id="stage-6-subs"></div>
+        </div>
+
+        <!-- Completion Summary Box (Stage 7) -->
+        <div id="stage-7-completion" style="display: none; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; border-radius: 14px; padding: 1.25rem; text-align: center;">
+          <div style="font-size: 2rem; margin-bottom: 0.25rem;">🎉</div>
+          <h4 style="font-size: 1.15rem; font-weight: 800; color: #15803d; margin: 0 0 0.2rem 0;">Park Dataset Uploaded Successfully</h4>
+          <div id="completionParkName" style="font-size: 0.98rem; font-weight: 800; color: var(--navy-dark); margin-bottom: 0.75rem;">ParkOps Adventure Park</div>
+          
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 0.85rem; font-size: 0.78rem; font-weight: 700;">
+            <div style="background: white; padding: 0.4rem 0.2rem; border-radius: 8px; border: 1px solid #bbf7d0;">
+              <span style="display: block; font-size: 0.65rem; color: #166534;">ZONES</span>
+              <span id="compZonesCount" style="color: #15803d; font-size: 0.92rem;">✓ 0</span>
+            </div>
+            <div style="background: white; padding: 0.4rem 0.2rem; border-radius: 8px; border: 1px solid #bbf7d0;">
+              <span style="display: block; font-size: 0.65rem; color: #166534;">RIDES</span>
+              <span id="compRidesCount" style="color: #2563eb; font-size: 0.92rem;">✓ 0</span>
+            </div>
+            <div style="background: white; padding: 0.4rem 0.2rem; border-radius: 8px; border: 1px solid #bbf7d0;">
+              <span style="display: block; font-size: 0.65rem; color: #166534;">FACILITIES</span>
+              <span id="compFacilitiesCount" style="color: #7c3aed; font-size: 0.92rem;">✓ 0</span>
+            </div>
+            <div style="background: white; padding: 0.4rem 0.2rem; border-radius: 8px; border: 1px solid #bbf7d0;">
+              <span style="display: block; font-size: 0.65rem; color: #166534;">VISITORS</span>
+              <span id="compVisitorsCount" style="color: #db2777; font-size: 0.92rem;">✓ 0</span>
+            </div>
+          </div>
+
+          <p style="font-size: 0.85rem; color: #166534; margin: 0 0 1rem 0; font-weight: 600;">
+            Your park data has been loaded and the Digital Model is ready.
+          </p>
+
+          <a href="{{ url_for('park_overview') }}" class="btn btn-primary" style="padding: 0.65rem 1.5rem; font-weight: 800; background: #16a34a; border-color: #16a34a; font-size: 0.9rem; text-decoration: none; display: inline-block;">
+            View Digital Model
+          </a>
+        </div>
+
+        <!-- Error Summary Box -->
+        <div id="stage-error-box" style="display: none; background: #fef2f2; border: 1.5px solid #fca5a5; border-radius: 14px; padding: 1.25rem; text-align: center;">
+          <div style="font-size: 2rem; margin-bottom: 0.25rem;">❌</div>
+          <h4 style="font-size: 1.1rem; font-weight: 800; color: #dc2626; margin: 0 0 0.35rem 0;">Dataset Upload Failed</h4>
+          <div id="errorStepName" style="font-size: 0.82rem; font-weight: 700; color: #991b1b; margin-bottom: 0.35rem;">Step: "Validation"</div>
+          <p id="errorMessageText" style="font-size: 0.85rem; color: #7f1d1d; margin: 0 0 1rem 0; font-weight: 600; line-height: 1.4; word-break: break-word;">
+            Missing park name in Park sheet.
+          </p>
+          <button type="button" class="btn btn-outline" onclick="closePipelineModal()" style="padding: 0.5rem 1.25rem; font-weight: 700; color: #dc2626; border-color: #fca5a5; background: white;">
+            Close & Retry Upload
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer: Progress Bar -->
+      <div id="pipelineFooterBar" style="background: #f8fafc; padding: 0.85rem 1.4rem; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+        <div style="flex: 1;">
+          <div style="height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+            <div id="pipelineProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #ec4899 0%, #8b5cf6 50%, #10b981 100%); transition: width 0.3s ease; border-radius: 999px;"></div>
+          </div>
+        </div>
+        <span id="pipelineProgressPct" style="font-size: 0.85rem; font-weight: 800; color: var(--navy-dark); min-width: 45px; text-align: right;">0%</span>
+      </div>
+
+    </div>
+  </div>
+
+  <style>
+    .pipeline-stage-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 0.65rem 0.9rem;
+      background: #ffffff;
+      transition: all 0.2s ease;
+    }
+    .pipeline-stage-card.stage-pending {
+      opacity: 0.55;
+      background: #f8fafc;
+    }
+    .pipeline-stage-card.stage-active {
+      opacity: 1;
+      border-color: #93c5fd;
+      background: #eff6ff;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+    }
+    .pipeline-stage-card.stage-complete {
+      opacity: 1;
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+    }
+    .pipeline-stage-card.stage-error {
+      opacity: 1;
+      border-color: #fca5a5;
+      background: #fef2f2;
+    }
+    .stage-header-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      color: var(--navy-dark);
+    }
+    .stage-num-badge {
+      font-size: 0.95rem;
+    }
+    .stage-title {
+      flex: 1;
+      font-size: 0.85rem;
+      letter-spacing: 0.3px;
+    }
+    .stage-status-icon {
+      font-size: 0.95rem;
+    }
+    .stage-sub-list {
+      margin-top: 0.35rem;
+      padding-left: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      font-size: 0.8rem;
+    }
+    .stage-sub-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+  </style>
+
+  <script>
+    function handleDatasetUploadStream(fileInput, event) {
+      if (event) event.preventDefault();
+      
+      const file = fileInput && fileInput.files && fileInput.files[0];
+      if (!file) {
+        alert("Please select a valid Excel (.xlsx, .xls) or .csv park dataset file.");
+        return false;
+      }
+
+      // Open modal
+      const modal = document.getElementById('uploadPipelineModal');
+      modal.style.display = 'flex';
+      
+      // Update header filename
+      document.getElementById('pipelineFileNameLabel').innerText = '📁 ' + file.name;
+      document.getElementById('pipelineHeaderSub').innerText = 'Processing Dataset...';
+      document.getElementById('pipelineHeaderSub').style.color = 'var(--navy-muted)';
+      document.getElementById('pipelineCloseX').style.display = 'none';
+
+      // Reset stage cards
+      for (let i = 1; i <= 6; i++) {
+        const box = document.getElementById(`stage-${i}-box`);
+        if (box) box.className = 'pipeline-stage-card stage-pending';
+        const icon = document.getElementById(`stage-${i}-icon`);
+        if (icon) icon.innerText = '○';
+        const subs = document.getElementById(`stage-${i}-subs`);
+        if (subs) subs.innerHTML = '';
+      }
+      document.getElementById('stage-7-completion').style.display = 'none';
+      document.getElementById('stage-error-box').style.display = 'none';
+      document.getElementById('pipelineFooterBar').style.display = 'flex';
+      updatePipelineProgress(0);
+
+      // Prepare FormData
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Send request to stream endpoint
+      fetch('/api/park-data/upload-stream', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Server returned status ${response.status}`);
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        function readChunk() {
+          reader.read().then(({ done, value }) => {
+            if (done) {
+              if (buffer.trim()) processPipelineLine(buffer.trim());
+              return;
+            }
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // keep last incomplete line in buffer
+            for (const line of lines) {
+              if (line.trim()) {
+                processPipelineLine(line.trim());
+              }
+            }
+            readChunk();
+          }).catch(err => {
+            showPipelineError('Stream Processing', err.message);
+          });
+        }
+
+        readChunk();
+      })
+      .catch(err => {
+        showPipelineError('Connection', err.message);
+      });
+
+      return false;
+    }
+
+    function processPipelineLine(jsonStr) {
+      try {
+        const data = JSON.parse(jsonStr);
+        if (data.stage === 'error') {
+          showPipelineError(data.failed_stage || 'Validation', data.error);
+          return;
+        }
+
+        const stageNum = data.stage;
+        const box = document.getElementById(`stage-${stageNum}-box`);
+        const icon = document.getElementById(`stage-${stageNum}-icon`);
+        const subContainer = document.getElementById(`stage-${stageNum}-subs`);
+
+        if (data.status === 'processing') {
+          if (box) box.className = 'pipeline-stage-card stage-active';
+          if (icon) icon.innerText = '⏳';
+          if (subContainer && data.message) {
+            subContainer.innerHTML = `<div class="stage-sub-item" style="color: #2563eb; font-weight: 600;">${data.message}</div>`;
+          }
+          updatePipelineProgress((stageNum - 1) * 15 + 5);
+        } else if (data.status === 'complete') {
+          if (stageNum === 7) {
+            // Complete stage
+            updatePipelineProgress(100);
+            for (let i = 1; i <= 6; i++) {
+              const b = document.getElementById(`stage-${i}-box`);
+              if (b) b.className = 'pipeline-stage-card stage-complete';
+              const ic = document.getElementById(`stage-${i}-icon`);
+              if (ic) ic.innerText = '✓';
+            }
+            document.getElementById('stage-7-completion').style.display = 'block';
+            document.getElementById('pipelineHeaderSub').innerText = '✓ Dataset Uploaded';
+            document.getElementById('pipelineHeaderSub').style.color = '#10b981';
+            document.getElementById('pipelineCloseX').style.display = 'block';
+            
+            if (data.park_name) document.getElementById('completionParkName').innerText = data.park_name;
+            document.getElementById('compZonesCount').innerText = `✓ ${data.zones_count || 0}`;
+            document.getElementById('compRidesCount').innerText = `✓ ${data.rides_count || 0}`;
+            document.getElementById('compFacilitiesCount').innerText = `✓ ${data.facilities_count || 0}`;
+            document.getElementById('compVisitorsCount').innerText = `✓ ${(data.visitors_count || 0).toLocaleString()}`;
+            return;
+          }
+
+          if (box) box.className = 'pipeline-stage-card stage-complete';
+          if (icon) icon.innerText = '✓';
+
+          if (subContainer && data.items && Array.isArray(data.items)) {
+            subContainer.innerHTML = data.items.map(item => `<div class="stage-sub-item" style="color: #166534; font-weight: 600;">${item}</div>`).join('');
+          }
+          updatePipelineProgress(stageNum * 15);
+        }
+      } catch (e) {
+        console.error("Error parsing NDJSON line:", e, jsonStr);
+      }
+    }
+
+    function updatePipelineProgress(pct) {
+      const pBar = document.getElementById('pipelineProgressBar');
+      const pTxt = document.getElementById('pipelineProgressPct');
+      if (pBar) pBar.style.width = `${pct}%`;
+      if (pTxt) pTxt.innerText = `${pct}%`;
+    }
+
+    function showPipelineError(stepName, errMsg) {
+      document.getElementById('stage-error-box').style.display = 'block';
+      document.getElementById('errorStepName').innerText = `Step: "${stepName}"`;
+      document.getElementById('errorMessageText').innerText = errMsg || 'Unknown processing error.';
+      document.getElementById('pipelineHeaderSub').innerText = '❌ Upload Failed';
+      document.getElementById('pipelineHeaderSub').style.color = '#ef4444';
+      document.getElementById('pipelineCloseX').style.display = 'block';
+
+      // Mark active stage card as error
+      for (let i = 1; i <= 6; i++) {
+        const box = document.getElementById(`stage-${i}-box`);
+        if (box && box.classList.contains('stage-active')) {
+          box.className = 'pipeline-stage-card stage-error';
+          document.getElementById(`stage-${i}-icon`).innerText = '❌';
+        }
+      }
+    }
+
+    function closePipelineModal() {
+      document.getElementById('uploadPipelineModal').style.display = 'none';
+    }
+  </script>
+  <!-- FLOATING AI CHAT ASSISTANT (SECTIONS 15-20 OF SPEC) -->
+  <button id="aiChatToggleBtn" onclick="toggleAiChatWidget()" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; background: linear-gradient(135deg, #eb6080 0%, #8b5cf6 100%); color: white; border: none; padding: 0.75rem 1.25rem; border-radius: 9999px; font-weight: 800; font-size: 0.9rem; box-shadow: 0 10px 25px -5px rgba(235, 96, 128, 0.4); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: transform 0.2s ease;">
+    <span>💬 Ask ParkOps AI</span>
+  </button>
+
+  <div id="aiChatPanelWidget" style="display: none; position: fixed; bottom: 75px; right: 20px; width: 380px; max-width: calc(100vw - 32px); height: 520px; max-height: calc(100vh - 100px); z-index: 9999; background: #ffffff; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); border: 1.5px solid #e2e8f0; flex-direction: column; overflow: hidden; animation: modalPop 0.25s ease-out;">
+    
+    <!-- Chat Header -->
+    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <span style="font-size: 1.4rem;">🤖</span>
+        <div>
+          <h4 style="font-size: 0.98rem; margin: 0; font-weight: 800; color: white;">Ask ParkOps AI</h4>
+          <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">Ask questions about your current park.</span>
+        </div>
+      </div>
+      <button type="button" onclick="toggleAiChatWidget()" style="background: transparent; border: none; font-size: 1.2rem; color: #cbd5e1; cursor: pointer; padding: 0.2rem 0.5rem;">✕</button>
+    </div>
+
+    <!-- Chat Engine Status Pill -->
+    <div style="background: #f8fafc; padding: 0.4rem 1.25rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; font-weight: 700; color: var(--navy-muted);">
+      <span style="display: flex; align-items: center; gap: 0.35rem;">
+        <span class="pulse-dot" style="background: {% if park_state and park_state.has_data %}#10b981{% else %}#f59e0b{% endif %}; width: 6px; height: 6px;"></span>
+        {% if park_state and park_state.has_data %}Digital Model Connected{% else %}Waiting for Dataset{% endif %}
+      </span>
+      <span style="background: #e2e8f0; padding: 0.15rem 0.5rem; border-radius: 999px; color: #334155;">
+        Local ParkOps AI
+      </span>
+    </div>
+
+    <!-- Chat Messages Scroll Container -->
+    <div id="aiChatMessages" style="flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.85rem; background: #fafcff;">
+      
+      <!-- System Welcome Message -->
+      <div style="background: white; border: 1px solid #e2e8f0; padding: 0.85rem; border-radius: 12px; color: var(--navy-dark); line-height: 1.45;">
+        {% if park_state and park_state.has_data %}
+          👋 Hi! I am your <strong>ParkOps AI Assistant</strong>. Ask me anything about <strong>{{ park_state.park.name }}</strong> telemetry, crowd levels, queue predictions, or What-If scenarios!
+        {% else %}
+          ⚠️ <strong>Upload a park dataset before asking about your park.</strong>
+        {% endif %}
+      </div>
+
+      {% if park_state and park_state.has_data %}
+      <!-- Suggested Questions Chips -->
+      <div id="aiChatChips" style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.25rem;">
+        <button type="button" class="chat-chip-btn" onclick="sendChatPrompt('Which zone is most crowded?')">Which zone is most crowded?</button>
+        <button type="button" class="chat-chip-btn" onclick="sendChatPrompt('What ride has the longest queue?')">What ride has the longest queue?</button>
+        <button type="button" class="chat-chip-btn" onclick="sendChatPrompt('What is the current park status?')">What is the current park status?</button>
+        <button type="button" class="chat-chip-btn" onclick="sendChatPrompt('What happens if 5,000 visitors arrive?')">What happens if 5,000 visitors arrive?</button>
+        <button type="button" class="chat-chip-btn" onclick="sendChatPrompt('Which facility has the highest demand?')">Which facility has the highest demand?</button>
+        <button type="button" class="chat-chip-btn" onclick="sendChatPrompt('Why is this zone at high risk?')">Why is this zone at high risk?</button>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Chat Input Area -->
+    <div style="padding: 0.75rem; background: #ffffff; border-top: 1px solid #e2e8f0; display: flex; gap: 0.5rem; align-items: center;">
+      <input type="text" id="aiChatInput" placeholder="{% if park_state and park_state.has_data %}Ask a question...{% else %}Upload dataset first...{% endif %}" {% if not park_state or not park_state.has_data %}disabled{% endif %} onkeypress="if(event.key==='Enter') sendChatMessage()" style="flex: 1; padding: 0.6rem 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 999px; font-size: 0.85rem; outline: none;">
+      <button type="button" onclick="sendChatMessage()" {% if not park_state or not park_state.has_data %}disabled{% endif %} style="background: var(--primary-pink); color: white; border: none; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; cursor: pointer; flex-shrink: 0;">
+        ➤
+      </button>
+    </div>
+
+  </div>
+
+  <style>
+    .chat-chip-btn {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 0.35rem 0.65rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .chat-chip-btn:hover {
+      border-color: var(--primary-pink);
+      color: var(--primary-pink);
+      background: #fff5f7;
+    }
+    .chat-msg-user {
+      align-self: flex-end;
+      background: #3b82f6;
+      color: white;
+      padding: 0.65rem 0.9rem;
+      border-radius: 14px 14px 2px 14px;
+      max-width: 85%;
+      word-break: break-word;
+      font-weight: 500;
+    }
+    .chat-msg-ai {
+      align-self: flex-start;
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      color: var(--navy-dark);
+      padding: 0.75rem 0.95rem;
+      border-radius: 14px 14px 14px 2px;
+      max-width: 90%;
+      word-break: break-word;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+  </style>
+
+  <script>
+    function toggleAiChatWidget() {
+      const panel = document.getElementById('aiChatPanelWidget');
+      if (panel.style.display === 'none' || !panel.style.display) {
+        panel.style.display = 'flex';
+        document.getElementById('aiChatInput').focus();
+      } else {
+        panel.style.display = 'none';
+      }
+    }
+
+    function sendChatPrompt(promptText) {
+      document.getElementById('aiChatInput').value = promptText;
+      sendChatMessage();
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById('aiChatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const container = document.getElementById('aiChatMessages');
+      
+      // User message
+      const userDiv = document.createElement('div');
+      userDiv.className = 'chat-msg-user';
+      userDiv.innerText = text;
+      container.appendChild(userDiv);
+
+      input.value = '';
+      container.scrollTop = container.scrollHeight;
+
+      // Typing indicator
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'chat-msg-ai';
+      typingDiv.innerText = '🤖 Thinking...';
+      container.appendChild(typingDiv);
+      container.scrollTop = container.scrollHeight;
+
+      fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      })
+      .then(res => res.json())
+      .then(data => {
+        typingDiv.innerText = data.response || "No response received.";
+        container.scrollTop = container.scrollHeight;
+      })
+      .catch(err => {
+        typingDiv.innerText = "Error querying AI Agent: " + err;
+        container.scrollTop = container.scrollHeight;
+      });
+    }
+  </script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block page_scripts %}{% endblock %}
+</body>
+</html>

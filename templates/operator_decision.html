@@ -1,0 +1,128 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Stage 9: Operator Decision — ParkOps{% endblock %}
+
+{% block dashboard_content %}
+
+{% include "workflow_header.html" %}
+
+<!-- STAGE HEADER BANNER -->
+<div class="dash-welcome-banner" style="margin-bottom: 1.5rem;">
+  <div class="welcome-text-side">
+    <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.25rem;">
+      <span style="font-size: 1.65rem;">👨‍💼</span>
+      <h1 style="font-size: 1.65rem; color: var(--navy-dark); margin: 0;">Stage 9: Operator Decision</h1>
+    </div>
+    <p style="color: var(--navy-muted); font-size: 0.92rem; margin: 0;">
+      The AI Agent provides the recommendation. The park operator makes the final decision.
+    </p>
+  </div>
+  <div class="welcome-badge-side">
+    <span id="decisionBadgePill" class="badge-status badge-info" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+      Pending Operator Authority
+    </span>
+  </div>
+</div>
+
+<!-- OPERATOR DECISION CONTROL CARD (SECTION 14 OF SPEC) -->
+<div class="dash-card" style="margin-bottom: 1.5rem; padding: 1.75rem;">
+  <div style="font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; color: var(--navy-muted); text-transform: uppercase; margin-bottom: 0.35rem;">
+    👨‍💼 OPERATOR DECISION
+  </div>
+  <p style="font-size: 0.95rem; color: var(--navy-dark); font-weight: 700; margin: 0 0 1.25rem 0;">
+    "The human operator evaluates the AI recommendation and makes the final decision."
+  </p>
+
+  {% set max_crowd = (zones | sort(attribute='occupancy_pct', reverse=True) | first) %}
+
+  <!-- AI RECOMMENDS BULLETS -->
+  <div style="background: #fafcff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 1.25rem; margin-bottom: 1.5rem;">
+    <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--navy-dark); margin: 0 0 0.5rem 0;">
+      AI recommends:
+    </h3>
+    <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.9rem; color: var(--navy-dark); font-weight: 600;">
+      <div>• Redistribute visitors toward Fantasy Zone</div>
+      <div>• Monitor {{ max_crowd.name if max_crowd else 'Adventure Zone' }}</div>
+    </div>
+  </div>
+
+  <!-- DECISION BUTTONS (SECTION 14 OF SPEC) -->
+  <div id="decisionButtonsWrap" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+    <button class="btn btn-primary" onclick="submitFinalDecision('apply')" style="flex: 1.2; padding: 0.85rem 1.5rem; font-weight: 800; font-size: 0.98rem; background: #16a34a; border-color: #16a34a; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
+      [ ✓ APPROVE ]
+    </button>
+    <button class="btn btn-outline" onclick="submitFinalDecision('reject')" style="flex: 1; padding: 0.85rem 1.5rem; font-weight: 800; font-size: 0.98rem; color: #dc2626; border-color: #fca5a5; background: white; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
+      [ ✕ REJECT ]
+    </button>
+  </div>
+
+  <!-- DECISION RESULT FEEDBACK NOTICES -->
+  <div id="approvalNotice" style="display: none; background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 14px; padding: 1.25rem; margin-bottom: 1.5rem;">
+    <div style="font-size: 1.2rem; font-weight: 800; color: #166534; margin-bottom: 0.25rem;">
+      ✓ Recommendation approved
+    </div>
+    <p style="margin: 0; color: #15803d; font-size: 0.88rem; font-weight: 600;">
+      Operator approved the recommended action. Real-world physical park operational plan updated.
+    </p>
+  </div>
+
+  <div id="rejectionNotice" style="display: none; background: #fef2f2; border: 2px solid #fecaca; border-radius: 14px; padding: 1.25rem; margin-bottom: 1.5rem;">
+    <div style="font-size: 1.2rem; font-weight: 800; color: #dc2626; margin-bottom: 0.25rem;">
+      ✕ Recommendation rejected
+    </div>
+    <p style="margin: 0; color: #b91c1c; font-size: 0.88rem; font-weight: 600;">
+      Operator rejected the recommended action. AI Agent resumed continuous Digital Model monitoring.
+    </p>
+  </div>
+
+  <div style="display: flex; justify-content: flex-end; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 1rem;">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-weight: 800; font-size: 0.92rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+      🏠 RETURN TO DASHBOARD
+    </a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+function submitFinalDecision(action) {
+  const decId = 'DEC-' + Math.floor(1000 + Math.random() * 9000);
+
+  fetch('/api/agent/decision', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ decision_id: decId, action: action })
+  })
+  .then(r => r.json())
+  .then(data => {
+    const appNotice = document.getElementById('approvalNotice');
+    const rejNotice = document.getElementById('rejectionNotice');
+
+    if (action === 'apply') {
+      appNotice.style.display = 'block';
+      rejNotice.style.display = 'none';
+    } else {
+      appNotice.style.display = 'none';
+      rejNotice.style.display = 'block';
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    if (action === 'apply') {
+      document.getElementById('approvalNotice').style.display = 'block';
+    } else {
+      document.getElementById('rejectionNotice').style.display = 'block';
+    }
+  });
+}
+
+// Auto-trigger if query parameter passed
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('decision') === 'approve') {
+  submitFinalDecision('apply');
+} else if (urlParams.get('decision') === 'reject') {
+  submitFinalDecision('reject');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Facilities & Dining — ParkOps{% endblock %}
+
+{% block dashboard_content %}
+<div class="dash-welcome-banner" style="margin-bottom: 1.5rem;">
+  <div class="welcome-text-side">
+    <h1 style="font-size: 1.65rem; color: var(--navy-dark); margin: 0 0 0.25rem 0;">🏢 Facilities, Dining & Guest Services</h1>
+    <p style="color: var(--navy-muted); font-size: 0.92rem; margin: 0;">
+      {% if park_state and park_state.has_data %}
+        Live demand tracking, queue wait metrics, and operational readiness for {{ park_state.park.name }}.
+      {% else %}
+        No facilities available. Upload a park dataset to load facility telemetry.
+      {% endif %}
+    </p>
+  </div>
+  <div class="welcome-badge-side">
+    <span class="live-pill">
+      <span class="pulse-dot" style="background: {% if park_state and park_state.has_data %}#10b981{% else %}#f59e0b{% endif %};"></span>
+      {% if park_state and park_state.has_data %}{{ stats.total }} Facilities Monitored{% else %}Waiting for Data{% endif %}
+    </span>
+  </div>
+</div>
+
+{% if park_state and park_state.has_data %}
+<!-- FACILITIES KPI STATS -->
+<div class="kpi-grid" style="margin-bottom: 1.5rem;">
+  <div class="kpi-card">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Total Amenities</span>
+      <span class="kpi-icon-wrap" style="background: rgba(96, 165, 250, 0.15); color: #2563eb;">🏬</span>
+    </div>
+    <div class="kpi-val">{{ stats.total }}</div>
+    <div class="kpi-badge-row">
+      <span class="kpi-subtext">Restrooms, Food, Care, Services</span>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Available / Normal</span>
+      <span class="kpi-icon-wrap" style="background: rgba(52, 211, 153, 0.12); color: #059669;">🟢</span>
+    </div>
+    <div class="kpi-val" style="color: #059669;">{{ stats.available }}</div>
+    <div class="kpi-badge-row">
+      <span class="kpi-trend up">Normal Load</span>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-top-row">
+      <span class="kpi-title">High Demand / Busy</span>
+      <span class="kpi-icon-wrap" style="background: rgba(251, 191, 36, 0.15); color: #d97706;">🟡</span>
+    </div>
+    <div class="kpi-val" style="color: #d97706;">{{ stats.busy }}</div>
+    <div class="kpi-badge-row">
+      <span class="kpi-subtext">Peak rush demand</span>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Critical / Restock</span>
+      <span class="kpi-icon-wrap" style="background: rgba(255, 107, 139, 0.12); color: var(--pink-primary);">🔴</span>
+    </div>
+    <div class="kpi-val" style="color: var(--pink-primary);">{{ stats.critical }}</div>
+    <div class="kpi-badge-row">
+      <span class="kpi-subtext">Support recommended</span>
+    </div>
+  </div>
+</div>
+
+<!-- FILTER & SEARCH BAR -->
+<div class="dash-card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+      <span style="font-weight: 700; color: var(--navy-dark); font-size: 0.9rem; margin-right: 0.5rem;">STATUS:</span>
+      <button class="filter-chip active" onclick="filterFacilities('all', this)">All ({{ stats.total }})</button>
+      <button class="filter-chip" onclick="filterFacilities('Available', this)">Available ({{ stats.available }})</button>
+      <button class="filter-chip" onclick="filterFacilities('Busy', this)">Busy ({{ stats.busy }})</button>
+      <button class="filter-chip" onclick="filterFacilities('Critical', this)">Critical ({{ stats.critical }})</button>
+    </div>
+    <div style="position: relative; min-width: 260px;">
+      <input type="text" id="facilitySearch" onkeyup="searchFacilities()" placeholder="Search facility by name or type..." style="width: 100%; padding: 0.55rem 1rem 0.55rem 2.2rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); font-size: 0.85rem; outline: none;">
+      <svg style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--navy-muted); width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    </div>
+  </div>
+</div>
+
+<!-- FACILITIES CARDS GRID -->
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem;">
+  {% for f in facilities %}
+  <div class="facility-card dash-card" data-status="{{ f.status }}" data-name="{{ f.name | lower }}" data-type="{{ (f.facility_type if f.facility_type else (f.type if f.type else '')) | lower }}" style="display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0;">
+    <div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <div style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; background: var(--bg-soft-blue);">
+            {{ f.icon if f.icon else '🏢' }}
+          </div>
+          <div>
+            <h3 style="font-size: 1rem; color: var(--navy-dark); margin: 0;">{{ f.name }}</h3>
+            <span style="font-size: 0.75rem; color: var(--navy-muted);">{{ f.zone_name if f.zone_name else (f.zone if f.zone else 'General Zone') }} • {{ f.facility_type if f.facility_type else 'Service' }}</span>
+          </div>
+        </div>
+        <span class="badge-status badge-{{ f.status | lower }}">{{ f.status }}</span>
+      </div>
+
+      <!-- Live Demand Tag & Capacity -->
+      <div style="margin: 0.75rem 0;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.35rem;">
+          <span style="color: var(--navy-muted);">Current Demand</span>
+          <strong style="color: var(--navy-dark);">{{ f.current_demand if f.current_demand is defined else f.demand }} / {{ f.capacity }}</strong>
+        </div>
+        {% set util_pct = f.utilization_pct if f.utilization_pct is defined else ((f.current_demand / max(1, f.capacity) * 100) | round | int) %}
+        <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+          <div style="width: {{ util_pct }}%; height: 100%; background: {% if f.status == 'Critical' %}#ff6b8b{% elif f.status == 'Busy' %}#fbbf24{% else %}#34d399{% endif %}; border-radius: 4px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(0,0,0,0.05); font-size: 0.8rem;">
+      <span style="color: var(--navy-muted);">Hourly Capacity: <strong>{{ f.capacity }} guests</strong></span>
+      <button class="btn btn-outline" style="padding: 0.3rem 0.75rem; font-size: 0.75rem;" onclick="alert('Operations support team notified for {{ f.name }}')">Dispatch Support</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<!-- EMPTY STATE FOR FACILITIES PAGE (SECTION 12 OF SPEC) -->
+<div class="dash-card" style="text-align: center; padding: 3rem 1.5rem;">
+  <div style="font-size: 3.5rem; margin-bottom: 0.75rem;">🏢</div>
+  <h2 style="font-size: 1.35rem; color: var(--navy-dark); margin: 0 0 0.5rem 0; font-weight: 800;">
+    No facilities available.
+  </h2>
+  <p style="font-size: 0.9rem; color: var(--navy-muted); margin: 0 0 1.5rem 0;">
+    Upload a park dataset to load facility information.
+  </p>
+  <a href="{{ url_for('park_data') }}" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-weight: 800; font-size: 0.95rem; text-decoration: none;">
+    📁 Upload Park Dataset
+  </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+function filterFacilities(status, btn) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  
+  const cards = document.querySelectorAll('.facility-card');
+  cards.forEach(card => {
+    if(status === 'all' || card.dataset.status === status) {
+      card.style.display = 'flex';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+function searchFacilities() {
+  const query = document.getElementById('facilitySearch').value.toLowerCase();
+  const cards = document.querySelectorAll('.facility-card');
+  cards.forEach(card => {
+    const name = card.dataset.name || '';
+    const type = card.dataset.type || '';
+    if(name.includes(query) || type.includes(query)) {
+      card.style.display = 'flex';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+</script>
+{% endblock %}

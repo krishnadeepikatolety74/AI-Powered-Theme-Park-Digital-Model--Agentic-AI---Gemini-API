@@ -1,0 +1,207 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Park Data — ParkOps{% endblock %}
+
+{% block dashboard_content %}
+
+{% set current_stage = 2 %}
+{% include "workflow_header.html" %}
+
+<!-- PAGE HEADER BANNER -->
+<div class="dash-welcome-banner" style="margin-bottom: 1.5rem;">
+  <div class="welcome-text-side">
+    <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.25rem;">
+      <span style="font-size: 1.65rem;">📊</span>
+      <h1 style="font-size: 1.65rem; color: var(--navy-dark); margin: 0;">Park Data Ingestion</h1>
+    </div>
+    <p style="color: var(--navy-muted); font-size: 0.92rem; margin: 0;">
+      Upload and manage your theme park dataset into the ParkOps database.
+    </p>
+  </div>
+  <div class="welcome-badge-side">
+    <span class="badge-status {% if park_state and park_state.has_data %}badge-operational{% else %}badge-maintenance{% endif %}" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+      {% if park_state and park_state.has_data %}
+        ● Dataset Active
+      {% else %}
+        ○ No Dataset Loaded
+      {% endif %}
+    </span>
+  </div>
+</div>
+
+<!-- DATASET STATUS PANEL (SECTION 3 OF SPEC) -->
+<div class="dash-card" style="margin-bottom: 1.5rem; padding: 1.25rem 1.5rem; background: {% if park_state and park_state.has_data %}#f0fdf4{% else %}#fffbeb{% endif %}; border: 1.5px solid {% if park_state and park_state.has_data %}#bbf7d0{% else %}#fde68a{% endif %}; border-radius: 16px;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <div style="font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; color: var(--navy-muted); text-transform: uppercase; margin-bottom: 0.35rem;">
+        📊 PARK DATA
+      </div>
+      <h2 style="font-size: 1.25rem; margin: 0 0 0.5rem 0; color: var(--navy-dark); font-weight: 800; display: flex; align-items: center; gap: 0.5rem;">
+        {% if park_state and park_state.has_data %}
+          <span style="color: #10b981;">Dataset Uploaded Successfully ✓</span>
+        {% else %}
+          <span style="color: #f59e0b;">○ No Dataset Loaded</span>
+        {% endif %}
+      </h2>
+
+      {% if park_state and park_state.has_data %}
+      <div style="font-size: 0.9rem; color: var(--navy-dark); line-height: 1.6; margin-bottom: 0.75rem;">
+        <strong style="display: block; font-size: 0.8rem; color: var(--navy-muted); text-transform: uppercase; margin-bottom: 0.25rem;">Output:</strong>
+        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <div>• <strong>Park Name:</strong> {{ park_state.park.name }}</div>
+          <div>• <strong>Zones:</strong> {{ zones|length }}</div>
+          <div>• <strong>Rides:</strong> {{ rides|length }}</div>
+          <div>• <strong>Facilities:</strong> {{ facilities|length }}</div>
+          <div>• <strong>Visitor Records:</strong> {{ "{:,}".format(park_state.visitors) }}</div>
+        </div>
+      </div>
+
+      <div style="font-size: 0.82rem; font-weight: 700; color: #166534; display: flex; gap: 1.25rem; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 0.6rem;">
+        <span>✓ Dataset validated</span>
+        <span>✓ Database updated</span>
+      </div>
+      {% else %}
+      <p style="margin: 0; font-size: 0.88rem; color: var(--navy-muted);">
+        ParkOps is waiting for a park dataset upload. Upload an Excel dataset below to activate your Digital Model.
+      </p>
+      {% endif %}
+    </div>
+
+    {% if park_state and park_state.has_data %}
+    <div>
+      <button type="button" class="btn btn-outline" onclick="openRemoveConfirmationModal()" style="padding: 0.65rem 1.25rem; font-weight: 700; color: #dc2626; border-color: #fca5a5; background: white;">
+        🗑️ Remove Current Dataset
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- UPLOAD PARK DATASET FORM CARD -->
+<div class="dash-card" style="margin-bottom: 1.5rem; padding: 1.5rem;">
+  <div class="card-header-row" style="margin-bottom: 1rem;">
+    <div>
+      <span class="section-tag" style="font-size: 0.72rem; padding: 0.2rem 0.65rem; margin-bottom: 0.2rem;">Data Source Selection</span>
+      <h2 style="font-size: 1.25rem; color: var(--navy-dark); margin: 0;">Upload Park Dataset (.xlsx, .xls, .csv)</h2>
+    </div>
+    <a href="{{ url_for('api_park_data_template') }}" class="btn btn-outline" style="padding: 0.4rem 0.85rem; font-size: 0.78rem;">
+      📥 Download Sample Excel Template
+    </a>
+  </div>
+
+  <form onsubmit="return handleDatasetUploadStream(document.getElementById('fileInput'), event);" method="POST" enctype="multipart/form-data" style="margin-bottom: 1rem;">
+    <div style="border: 2px dashed #cbd5e1; border-radius: 14px; padding: 2rem 1.5rem; text-align: center; background: #f8fafc; transition: all 0.2s ease;" ondragover="event.preventDefault();" ondrop="handleFileDrop(event)">
+      <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📁</div>
+      <h3 style="font-size: 1.05rem; color: var(--navy-dark); margin: 0 0 0.35rem 0;">Select or Drag Park Dataset File</h3>
+      <p style="font-size: 0.82rem; color: var(--navy-muted); margin: 0 0 1.25rem 0;">
+        Primary format: Microsoft Excel (<code>.xlsx</code>, <code>.xls</code>) or <code>.csv</code> datasets containing Park, Zones, Rides, and Facilities sheets.
+      </p>
+
+      <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.csv" style="display: none;" onchange="updateFileName(this)">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('fileInput').click()" style="padding: 0.65rem 1.25rem; font-weight: 700;">
+          Browse File...
+        </button>
+        <span id="fileNameLabel" style="font-size: 0.85rem; font-weight: 700; color: var(--navy-dark);">No file selected</span>
+        
+        <button type="submit" class="btn btn-primary" style="padding: 0.65rem 1.5rem; font-weight: 800;">
+          📁 Upload Park Dataset
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- CONFIRMATION MODAL FOR DATASET REMOVAL (SECTION 15 OF SPEC) -->
+<div id="removeConfirmModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 9999; justify-content: center; align-items: center; padding: 1rem;">
+  <div style="background: #ffffff; border-radius: 18px; max-width: 440px; width: 100%; padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); text-align: center; border: 1px solid #fee2e2; animation: modalPop 0.25s ease-out;">
+    <div style="width: 56px; height: 56px; background: #fee2e2; color: #dc2626; font-size: 1.8rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);">
+      🗑️
+    </div>
+    <h3 style="font-size: 1.3rem; color: var(--navy-dark); margin: 0 0 0.5rem 0; font-weight: 800;">
+      Remove Park Dataset?
+    </h3>
+    <p style="font-size: 0.88rem; color: var(--navy-muted); margin: 0 0 1.5rem 0; line-height: 1.45;">
+      This will remove the current park data from ParkOps and reset the Digital Model, Dashboard, Rides, Visitors, Facilities, and AI Agent to empty state.
+    </p>
+
+    <div style="display: flex; gap: 0.75rem; justify-content: center;">
+      <button type="button" class="btn btn-outline" onclick="closeRemoveConfirmationModal()" style="flex: 1; padding: 0.7rem; font-weight: 700;">
+        Cancel
+      </button>
+      <button type="button" id="confirmRemoveBtn" class="btn btn-primary" onclick="executeDatasetRemoval()" style="flex: 1; padding: 0.7rem; font-weight: 800; background: #dc2626; border-color: #dc2626;">
+        Remove Dataset
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+function updateFileName(input) {
+  const lbl = document.getElementById('fileNameLabel');
+  if (input.files && input.files[0]) {
+    lbl.innerText = input.files[0].name;
+    lbl.style.color = 'var(--primary-pink)';
+  } else {
+    lbl.innerText = 'No file selected';
+    lbl.style.color = 'var(--navy-dark)';
+  }
+}
+
+function handleFileDrop(e) {
+  e.preventDefault();
+  const files = e.dataTransfer.files;
+  if (files && files[0]) {
+    const input = document.getElementById('fileInput');
+    input.files = files;
+    updateFileName(input);
+  }
+}
+
+function openRemoveConfirmationModal() {
+  document.getElementById('removeConfirmModal').style.display = 'flex';
+}
+
+function closeRemoveConfirmationModal() {
+  document.getElementById('removeConfirmModal').style.display = 'none';
+}
+
+function executeDatasetRemoval() {
+  const btn = document.getElementById('confirmRemoveBtn');
+  btn.disabled = true;
+  btn.innerText = 'Removing...';
+
+  fetch("{{ url_for('api_park_data_remove') }}", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(res => res.json())
+  .then(data => {
+    closeRemoveConfirmationModal();
+    if (data.success) {
+      alert("✓ Park Dataset Removed\n\n" + (data.message || "ParkOps is ready for a new park dataset."));
+      window.location.reload();
+    } else {
+      alert("Error removing dataset: " + (data.error || "Unknown error"));
+      btn.disabled = false;
+      btn.innerText = 'Remove Dataset';
+    }
+  })
+  .catch(err => {
+    closeRemoveConfirmationModal();
+    alert("Network error removing dataset: " + err);
+    btn.disabled = false;
+    btn.innerText = 'Remove Dataset';
+  });
+}
+</script>
+<style>
+@keyframes modalPop {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+</style>
+{% endblock %}

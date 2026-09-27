@@ -1,0 +1,290 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Park Overview — ParkOps{% endblock %}
+
+{% block dashboard_content %}
+<div class="dash-welcome-banner" style="margin-bottom: 1.5rem;">
+  <div class="welcome-text-side">
+    <h1 style="font-size: 1.65rem; color: var(--navy-dark); margin: 0 0 0.25rem 0;">🗺️ Park Overview</h1>
+    <p style="color: var(--navy-muted); font-size: 0.92rem; margin: 0;">
+      {% if park_state and park_state.has_data %}
+        Live spatial intelligence, sector crowd telemetry, and operational layers for {{ park_state.park.name }}.
+      {% else %}
+        No park dataset loaded. Upload a dataset to view your park architecture and telemetry.
+      {% endif %}
+    </p>
+  </div>
+  <div class="welcome-badge-side">
+    <span class="live-pill">
+      <span class="pulse-dot" style="background: {% if park_state and park_state.has_data %}#10b981{% else %}#f59e0b{% endif %};"></span>
+      {% if park_state and park_state.has_data %}Digital Model Live{% else %}Waiting for Data{% endif %}
+    </span>
+  </div>
+</div>
+
+{% if park_state and park_state.has_data %}
+<!-- FILTER CONTROLS BAR -->
+<div class="dash-card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+      <span style="font-weight: 700; color: var(--navy-dark); font-size: 0.9rem; margin-right: 0.5rem;">LAYER FILTER:</span>
+      <button class="filter-chip active" onclick="filterLayers('all', this)">All Layers</button>
+      <button class="filter-chip" onclick="filterLayers('crowd', this)">Crowd Density</button>
+      <button class="filter-chip" onclick="filterLayers('rides', this)">Rides & Attractions</button>
+      <button class="filter-chip" onclick="filterLayers('facilities', this)">Facilities & Dining</button>
+    </div>
+    <div style="display: flex; gap: 1rem; align-items: center; font-size: 0.85rem; color: var(--navy-muted);">
+      <span><strong>Park:</strong> {{ park_state.park.name }}</span>
+      <span><strong>Weather:</strong> {{ stats.weather if stats and stats.weather else '24°C Sunny' }} ☀️</span>
+      <span><strong>Capacity:</strong> {{ "{:,}".format(park_state.park.total_capacity) }} ({{ "{:,}".format(park_state.visitors) }} guests)</span>
+      <span><strong>Active Rides:</strong> {{ stats.active_rides_ratio if stats else '0 / 0' }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- LARGE INTERACTIVE DIGITAL MODEL MAP & ZONE TELEMETRY -->
+<div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.1fr); gap: 1.5rem; margin-bottom: 1.5rem;">
+  
+  <!-- INTERACTIVE DIGITAL MODEL MAP VIEWPORT -->
+  <div class="dash-card" style="display: flex; flex-direction: column;">
+    <div class="card-header-row" style="margin-bottom: 0.75rem;">
+      <div>
+        <h2 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0;">Data-Driven Digital Model Map</h2>
+        <p style="font-size: 0.8rem; color: var(--navy-muted); margin: 0.25rem 0 0 0;">Click on any sector polygon or marker pin for instant telemetry diagnostics</p>
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <span class="legend-dot" style="background: #ef4444;"></span> <span style="font-size: 0.75rem; color: var(--navy-muted);">Critical</span>
+        <span class="legend-dot" style="background: #eb6080;"></span> <span style="font-size: 0.75rem; color: var(--navy-muted);">High</span>
+        <span class="legend-dot" style="background: #fbbf24;"></span> <span style="font-size: 0.75rem; color: var(--navy-muted);">Med</span>
+        <span class="legend-dot" style="background: #34d399;"></span> <span style="font-size: 0.75rem; color: var(--navy-muted);">Low</span>
+      </div>
+    </div>
+
+    <div class="model-map-canvas-wrap" style="position: relative; border-radius: 12px; overflow: hidden; height: 460px; background: #e0f2fe; border: 1px solid rgba(0,0,0,0.08);">
+      <img src="{{ url_for('static', filename='images/dashboard-model-map.png') }}?v=3" alt="ParkOps Digital Model Map" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.95; filter: contrast(1.05) brightness(1.02); z-index: 1;">
+      
+      <!-- DATA-DRIVEN ZONE OVERLAYS -->
+      <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto; z-index: 2;" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {% for z in zones %}
+        {% set zx = z.x_position if z.x_position <= 100 else (z.x_position / 1000 * 100) %}
+        {% set zy = z.y_position if z.y_position <= 100 else (z.y_position / 800 * 100) %}
+        {% set zw = z.width if z.width <= 100 else (z.width / 1000 * 100) %}
+        {% set zh = z.height if z.height <= 100 else (z.height / 800 * 100) %}
+        {% set fill_color = 'rgba(52, 211, 153, 0.28)' if z.crowd_level == 'Low' else ('rgba(251, 191, 36, 0.28)' if z.crowd_level == 'Medium' else ('rgba(255, 107, 139, 0.32)' if z.crowd_level == 'High' else 'rgba(239, 68, 68, 0.38)')) %}
+        {% set stroke_color = '#34d399' if z.crowd_level == 'Low' else ('#fbbf24' if z.crowd_level == 'Medium' else ('#ff6b8b' if z.crowd_level == 'High' else '#ef4444')) %}
+        <rect class="map-zone-polygon layer-crowd" 
+              x="{{ zx }}" y="{{ zy }}" width="{{ zw }}" height="{{ zh }}" 
+              rx="2" ry="2"
+              fill="{{ fill_color }}" stroke="{{ stroke_color }}" stroke-width="0.8" stroke-dasharray="2 1"
+              style="cursor: pointer; transition: all 0.2s ease;"
+              onclick="inspectEntity('zone', '{{ z.name }}', '{{ z.crowd_level }}', '{{ z.current_visitors }} / {{ z.capacity }} ({{ z.occupancy_pct }}%)', '{{ z.description }}', 'Occupancy: {{ z.occupancy_pct }}%')">
+          <title>{{ z.name }}: {{ z.crowd_level }} Density ({{ z.occupancy_pct }}%)</title>
+        </rect>
+        {% endfor %}
+      </svg>
+
+      <!-- READABLE DYNAMIC ZONE OVERLAY BADGES -->
+      {% for z in zones %}
+      {% set zx = z.x_position if z.x_position <= 100 else (z.x_position / 1000 * 100) %}
+      {% set zy = z.y_position if z.y_position <= 100 else (z.y_position / 800 * 100) %}
+      {% set zw = z.width if z.width <= 100 else (z.width / 1000 * 100) %}
+      {% set stroke_color = '#10b981' if z.crowd_level == 'Low' else ('#f59e0b' if z.crowd_level == 'Medium' else ('#eb6080' if z.crowd_level == 'High' else '#dc2626')) %}
+      <div style="position: absolute; top: {{ zy + 1 }}%; left: {{ zx + 1 }}%; z-index: 3; pointer-events: none; max-width: {{ zw - 2 }}%;">
+        <div style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(4px); border: 1.5px solid {{ stroke_color }}; border-radius: 6px; padding: 2px 7px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); pointer-events: auto; cursor: pointer;"
+             onclick="inspectEntity('zone', '{{ z.name }}', '{{ z.crowd_level }}', '{{ z.current_visitors }} / {{ z.capacity }} ({{ z.occupancy_pct }}%)', '{{ z.description }}', 'Occupancy: {{ z.occupancy_pct }}%')">
+          <span style="font-size: 0.7rem; font-weight: 800; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;">
+            📍 {{ z.name }}
+          </span>
+          <span style="font-size: 0.62rem; font-weight: 800; color: #ffffff; background: {{ stroke_color }}; padding: 1px 5px; border-radius: 99px; white-space: nowrap;">
+            {{ z.occupancy_pct }}%
+          </span>
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- DATA-DRIVEN RIDE MARKERS -->
+      {% for r in rides %}
+      {% set rx = r.x_position if r.x_position <= 100 else (r.x_position / 1000 * 100) %}
+      {% set ry = r.y_position if r.y_position <= 100 else (r.y_position / 800 * 100) %}
+      <div class="map-interactive-pin layer-rides" 
+           style="position: absolute; top: {{ ry }}%; left: {{ rx }}%; z-index: 5; transform: translate(-50%, -50%); cursor: pointer;"
+           onclick="inspectEntity('ride', '{{ r.name }}', '{{ r.status }}', 'Queue: {{ r.current_queue }} min | Cap: {{ r.capacity_per_hour }}/hr', 'Zone: {{ r.zone_name if r.zone_name else r.zone_id }} | Utilization: {{ r.utilization }}%', '{{ r.status }}')">
+        <div class="pin-marker" style="background: {{ '#34d399' if r.status == 'Operational' else ('#f59e0b' if r.status == 'Maintenance' else '#ef4444') }}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.25); border: 2px solid #fff; font-size: 0.85rem;">
+          {{ r.icon if r.icon else ('🎢' if 'Coaster' in r.name else ('🎡' if 'Wheel' in r.name else ('🌊' if 'Water' in r.name or 'Splash' in r.name else '🚀'))) }}
+        </div>
+        <div class="pin-label-tag" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 1px; white-space: nowrap; background: rgba(15, 23, 42, 0.92); color: #fff; font-size: 0.6rem; font-weight: 700; padding: 1px 4px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 2px 5px rgba(0,0,0,0.3); pointer-events: none;">
+          {{ r.name }}
+        </div>
+        <div class="pin-tooltip"><strong>{{ r.name }}</strong><br>Status: {{ r.status }}<br>Queue: {{ r.current_queue }} min</div>
+      </div>
+      {% endfor %}
+
+      <!-- DATA-DRIVEN FACILITY MARKERS -->
+      {% for f in facilities %}
+      {% set fx = f.x_position if f.x_position <= 100 else (f.x_position / 1000 * 100) %}
+      {% set fy = f.y_position if f.y_position <= 100 else (f.y_position / 800 * 100) %}
+      <div class="map-interactive-pin layer-facilities" 
+           style="position: absolute; top: {{ fy }}%; left: {{ fx }}%; z-index: 4; transform: translate(-50%, -50%); cursor: pointer;"
+           onclick="inspectEntity('facility', '{{ f.name }}', '{{ f.status }}', 'Demand: {{ f.current_demand }} / {{ f.capacity }}', 'Type: {{ f.facility_type }}', '{{ f.status }}')">
+        <div class="pin-marker" style="background: {{ '#34d399' if f.status == 'Available' else ('#f59e0b' if f.status == 'Busy' else '#ef4444') }}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); border: 2px solid #fff; font-size: 0.75rem;">
+          {{ f.icon if f.icon else ('🍔' if 'Food' in f.name or 'Grill' in f.name else ('🚻' if 'Restroom' in f.name else ('🏥' if 'Aid' in f.name else 'ℹ️'))) }}
+        </div>
+        <div class="pin-label-tag" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 1px; white-space: nowrap; background: rgba(15, 23, 42, 0.92); color: #94a3b8; font-size: 0.58rem; font-weight: 700; padding: 1px 4px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 2px 5px rgba(0,0,0,0.3); pointer-events: none;">
+          {{ f.name }}
+        </div>
+        <div class="pin-tooltip"><strong>{{ f.name }}</strong><br>Demand: {{ f.current_demand }}/{{ f.capacity }}</div>
+      </div>
+      {% endfor %}
+
+    </div>
+  </div>
+
+  <!-- ZONE & ENTITY INSPECTOR PANEL -->
+  <div class="dash-card" style="display: flex; flex-direction: column;">
+    <div class="card-header-row" style="margin-bottom: 0.75rem;">
+      <h2 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0;">Sector Diagnostics</h2>
+      <span id="inspector-badge" class="badge-status badge-high">High Density</span>
+    </div>
+
+    <div id="inspector-content" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <h3 id="inspector-title" style="font-size: 1.2rem; color: var(--navy-dark); margin: 0 0 0.5rem 0;">
+          {{ zones[0].name if zones else 'Zone' }}
+        </h3>
+        <p id="inspector-desc" style="font-size: 0.85rem; color: var(--navy-muted); margin-bottom: 1rem;">
+          {{ zones[0].description if zones else 'Primary theme park sector.' }}
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; background: var(--bg-soft-blue); padding: 1rem; border-radius: 10px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+            <span style="color: var(--navy-muted);" id="inspector-lbl-1">Visitors / Capacity:</span>
+            <strong id="inspector-val-1" style="color: var(--navy-dark);">
+              {{ zones[0].current_visitors if zones else 0 }} / {{ zones[0].capacity if zones else 0 }} ({{ zones[0].occupancy_pct if zones else 0 }}%)
+            </strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+            <span style="color: var(--navy-muted);" id="inspector-lbl-2">Sector Telemetry:</span>
+            <strong id="inspector-val-2" style="color: var(--navy-dark); text-align: right; max-width: 60%;">
+              {{ zones[0].crowd_level if zones else 'Low' }} Load Density
+            </strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+            <span style="color: var(--navy-muted);" id="inspector-lbl-3">Operational Status:</span>
+            <strong id="inspector-val-3" style="color: var(--pink-primary);">
+              {{ zones[0].occupancy_pct if zones else 0 }}% Occupancy
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.06);">
+        <div style="font-size: 0.8rem; font-weight: 700; color: var(--navy-dark); margin-bottom: 0.5rem;">AI AGENT INTELLIGENCE:</div>
+        <p id="inspector-ai" style="font-size: 0.8rem; color: var(--navy-dark); background: #fdf2f8; border-left: 3px solid var(--pink-primary); padding: 0.6rem 0.75rem; border-radius: 4px; margin: 0;">
+          Dynamic digital model monitoring active. Real-time telemetry synchronized with database data layer.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- PARK ZONES GRID SUMMARY -->
+<div class="dash-card">
+  <div class="card-header-row" style="margin-bottom: 1rem;">
+    <h2 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0;">All Digital Model Sectors</h2>
+    <span style="font-size: 0.85rem; color: var(--navy-muted);">{{ zones|length }} Active Zones</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
+    {% for zone in zones %}
+    <div style="background: white; border: 1px solid rgba(0,0,0,0.06); border-radius: 12px; padding: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span style="font-weight: 700; color: var(--navy-dark); font-size: 0.95rem;">{{ zone.name }}</span>
+        <span class="badge-status badge-{{ zone.crowd_level | lower }}">{{ zone.crowd_level }}</span>
+      </div>
+      <div style="font-size: 1.3rem; font-weight: 800; color: var(--navy-dark); margin-bottom: 0.25rem;">
+        {{ "{:,}".format(zone.current_visitors) }} <span style="font-size: 0.8rem; font-weight: 500; color: var(--navy-muted);">/ {{ "{:,}".format(zone.capacity) }}</span>
+      </div>
+      
+      <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 0.5rem;">
+        <div style="width: {{ zone.occupancy_pct }}%; height: 100%; background: {{ zone.color }}; border-radius: 4px;"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--navy-muted); margin-top: 0.35rem;">
+        <span>Capacity Occupancy</span>
+        <span><strong>{{ zone.occupancy_pct }}%</strong></span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<!-- EMPTY STATE FOR PARK OVERVIEW (SECTION 9 OF SPEC) -->
+<div class="dash-card" style="text-align: center; padding: 3rem 1.5rem;">
+  <div style="font-size: 3.5rem; margin-bottom: 0.75rem;">🗺️</div>
+  <h2 style="font-size: 1.35rem; color: var(--navy-dark); margin: 0 0 0.5rem 0; font-weight: 800;">
+    No park data available.
+  </h2>
+  <p style="font-size: 0.9rem; color: var(--navy-muted); margin: 0 0 1.5rem 0;">
+    Upload a park dataset to activate Park Overview and visualize your park architecture.
+  </p>
+  <a href="{{ url_for('park_data') }}" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-weight: 800; font-size: 0.95rem; text-decoration: none;">
+    📁 Upload Park Dataset
+  </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+function inspectEntity(type, name, status, val1, val2, val3) {
+  document.getElementById('inspector-title').innerText = name;
+  const badge = document.getElementById('inspector-badge');
+  badge.className = 'badge-status badge-' + (status.toLowerCase().includes('high') || status.toLowerCase().includes('critical') ? 'high' : (status.toLowerCase().includes('busy') || status.toLowerCase().includes('med') ? 'medium' : 'low'));
+  badge.innerText = status;
+
+  document.getElementById('inspector-desc').innerText = val2;
+  document.getElementById('inspector-val-1').innerText = val1;
+  document.getElementById('inspector-val-2').innerText = val2;
+  document.getElementById('inspector-val-3').innerText = val3;
+
+  if (type === 'zone') {
+    document.getElementById('inspector-lbl-1').innerText = 'Visitors / Capacity:';
+    document.getElementById('inspector-lbl-2').innerText = 'Zone Description:';
+    document.getElementById('inspector-lbl-3').innerText = 'Occupancy Status:';
+    document.getElementById('inspector-ai').innerText = 'Sector density is ' + status + '. AI Agent dynamically monitors pedestrian flow across connecting promenades.';
+  } else if (type === 'ride') {
+    document.getElementById('inspector-lbl-1').innerText = 'Queue & Capacity:';
+    document.getElementById('inspector-lbl-2').innerText = 'Attraction Telemetry:';
+    document.getElementById('inspector-lbl-3').innerText = 'Operational State:';
+    document.getElementById('inspector-ai').innerText = 'Attraction ' + name + ' is ' + status + '. AI simulation estimates turnstile throughput at target efficiency.';
+  } else {
+    document.getElementById('inspector-lbl-1').innerText = 'Facility Demand:';
+    document.getElementById('inspector-lbl-2').innerText = 'Service Category:';
+    document.getElementById('inspector-lbl-3').innerText = 'Service State:';
+    document.getElementById('inspector-ai').innerText = 'Service demand is monitored in real-time to avoid queuing at peak hours.';
+  }
+}
+
+function filterLayers(layer, btn) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  
+  const pins = document.querySelectorAll('.map-interactive-pin');
+  const polys = document.querySelectorAll('.map-zone-polygon');
+
+  if (layer === 'all') {
+    pins.forEach(p => p.style.display = 'block');
+    polys.forEach(p => p.style.display = 'block');
+  } else if (layer === 'crowd') {
+    pins.forEach(p => p.style.display = 'none');
+    polys.forEach(p => p.style.display = 'block');
+  } else if (layer === 'rides') {
+    pins.forEach(p => p.classList.contains('layer-rides') ? p.style.display = 'block' : p.style.display = 'none');
+    polys.forEach(p => p.style.display = 'none');
+  } else if (layer === 'facilities') {
+    pins.forEach(p => p.classList.contains('layer-facilities') ? p.style.display = 'block' : p.style.display = 'none');
+    polys.forEach(p => p.style.display = 'none');
+  }
+}
+</script>
+{% endblock %}

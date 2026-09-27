@@ -1,0 +1,275 @@
+{
+  "park": {
+    "name": "ParkOps Theme Park",
+    "description": "Premier AI-Powered Theme Park Digital Model",
+    "capacity": 25000,
+    "weather": "Sunny & Clear",
+    "temperature": "24°C"
+  },
+  "zones": [
+    {
+      "name": "Adventure Zone",
+      "description": "High-adrenaline thrill coasters and drop towers",
+      "capacity": 5000,
+      "current_visitors": 3800,
+      "x": 8,
+      "y": 12,
+      "width": 42,
+      "height": 38
+    },
+    {
+      "name": "Fantasy Land",
+      "description": "Whimsical family rides, grand wheel & magical castle",
+      "capacity": 4500,
+      "current_visitors": 3450,
+      "x": 54,
+      "y": 48,
+      "width": 42,
+      "height": 42
+    },
+    {
+      "name": "Water World",
+      "description": "Splash flumes, rapids, and tidal wave pools",
+      "capacity": 3500,
+      "current_visitors": 1650,
+      "x": 52,
+      "y": 10,
+      "width": 42,
+      "height": 36
+    },
+    {
+      "name": "Main Entrance",
+      "description": "Turnstile ingress hubs, guest services, plaza & parking",
+      "capacity": 4000,
+      "current_visitors": 3550,
+      "x": 8,
+      "y": 54,
+      "width": 42,
+      "height": 38
+    }
+  ],
+  "rides": [
+    {
+      "name": "Roller Coaster",
+      "zone": "Adventure Zone",
+      "ride_type": "Hyper Coaster",
+      "capacity_per_hour": 1200,
+      "queue": 35,
+      "status": "Operational",
+      "x": 18,
+      "y": 22,
+      "icon": "🎢"
+    },
+    {
+      "name": "Grand Wonder Wheel",
+      "zone": "Fantasy Land",
+      "ride_type": "Ferris Wheel",
+      "capacity_per_hour": 900,
+      "queue": 20,
+      "status": "Operational",
+      "x": 65,
+      "y": 58,
+      "icon": "🎡"
+    },
+    {
+      "name": "Skyline Splash Flume",
+      "zone": "Water World",
+      "ride_type": "Water Log Flume",
+      "capacity_per_hour": 800,
+      "queue": 0,
+      "status": "Maintenance",
+      "x": 68,
+      "y": 20,
+      "icon": "🌊"
+    },
+    {
+      "name": "Apex Drop Tower",
+      "zone": "Adventure Zone",
+      "ride_type": "Drop Tower",
+      "capacity_per_hour": 750,
+      "queue": 28,
+      "status": "Operational",
+      "x": 32,
+      "y": 28,
+      "icon": "🗼"
+    },
+    {
+      "name": "Royal Carousel",
+      "zone": "Fantasy Land",
+      "ride_type": "Family Carousel",
+      "capacity_per_hour": 600,
+      "queue": 12,
+      "status": "Operational",
+      "x": 78,
+      "y": 68,
+      "icon": "🎠"
+    },
+    {
+      "name": "Enchanted Castle Tour",
+      "zone": "Fantasy Land",
+      "ride_type": "Dark Ride",
+      "capacity_per_hour": 1100,
+      "queue": 18,
+      "status": "Operational",
+      "x": 60,
+      "y": 75,
+      "icon": "🏰"
+    },
+    {
+      "name": "Galaxy Spinner Coaster",
+      "zone": "Adventure Zone",
+      "ride_type": "Spinning Coaster",
+      "capacity_per_hour": 950,
+      "queue": 24,
+      "status": "Operational",
+      "x": 22,
+      "y": 36,
+      "icon": "🚀"
+    },
+    {
+      "name": "Mystic Rapids Water Cruise",
+      "zone": "Water World",
+      "ride_type": "River Rafting",
+      "capacity_per_hour": 850,
+      "queue": 30,
+      "status": "Operational",
+      "x": 75,
+      "y": 30,
+      "icon": "⛵"
+    },
+    {
+      "name": "Pirate Bay Wave Pool",
+      "zone": "Water World",
+      "ride_type": "Wave Pool",
+      "capacity_per_hour": 1400,
+      "queue": 15,
+      "status": "Operational",
+      "x": 85,
+      "y": 24,
+      "icon": "🏊"
+    },
+    {
+      "name": "Whimsical Teacups",
+      "zone": "Fantasy Land",
+      "ride_type": "Spinning Ride",
+      "capacity_per_hour": 500,
+      "queue": 0,
+      "status": "Offline",
+      "x": 84,
+      "y": 80,
+      "icon": "☕"
+    }
+  ],
+  "facilities": [
+    {
+      "name": "Castle Grand Food Court",
+      "zone": "Fantasy Land",
+      "facility_type": "Food & Dining",
+      "capacity": 450,
+      "current_demand": 382,
+      "status": "Busy",
+      "x": 70,
+      "y": 64,
+      "icon": "🍔"
+    },
+    {
+      "name": "Lagoon Seafood Grill",
+      "zone": "Water World",
+      "facility_type": "Food & Dining",
+      "capacity": 280,
+      "current_demand": 118,
+      "status": "Available",
+      "x": 62,
+      "y": 32,
+      "icon": "🍤"
+    },
+    {
+      "name": "Adventure Restrooms East",
+      "zone": "Adventure Zone",
+      "facility_type": "Restroom",
+      "capacity": 120,
+      "current_demand": 110,
+      "status": "Critical",
+      "x": 36,
+      "y": 18,
+      "icon": "🚻"
+    },
+    {
+      "name": "Fantasy Restrooms West",
+      "zone": "Fantasy Land",
+      "facility_type": "Restroom",
+      "capacity": 150,
+      "current_demand": 45,
+      "status": "Available",
+      "x": 88,
+      "y": 72,
+      "icon": "🚻"
+    },
+    {
+      "name": "Main Plaza First Aid Station",
+      "zone": "Main Entrance",
+      "facility_type": "Medical",
+      "capacity": 25,
+      "current_demand": 3,
+      "status": "Available",
+      "x": 25,
+      "y": 65,
+      "icon": "🏥"
+    },
+    {
+      "name": "Water World First Aid Unit",
+      "zone": "Water World",
+      "facility_type": "Medical",
+      "capacity": 20,
+      "current_demand": 3,
+      "status": "Available",
+      "x": 80,
+      "y": 35,
+      "icon": "🩹"
+    },
+    {
+      "name": "ParkOps Souvenirs Emporium",
+      "zone": "Main Entrance",
+      "facility_type": "Merchandise",
+      "capacity": 300,
+      "current_demand": 225,
+      "status": "Busy",
+      "x": 32,
+      "y": 75,
+      "icon": "🎁"
+    },
+    {
+      "name": "Castle Sweets & Treats",
+      "zone": "Fantasy Land",
+      "facility_type": "Merchandise",
+      "capacity": 180,
+      "current_demand": 90,
+      "status": "Available",
+      "x": 56,
+      "y": 82,
+      "icon": "🍭"
+    },
+    {
+      "name": "Central Guest Services & Lost Items",
+      "zone": "Main Entrance",
+      "facility_type": "Information",
+      "capacity": 60,
+      "current_demand": 12,
+      "status": "Available",
+      "x": 18,
+      "y": 60,
+      "icon": "ℹ️"
+    },
+    {
+      "name": "North Guest Parking Lot (A-D)",
+      "zone": "Main Entrance",
+      "facility_type": "Parking",
+      "capacity": 4500,
+      "current_demand": 3960,
+      "status": "Busy",
+      "x": 12,
+      "y": 85,
+      "icon": "🚗"
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Settings & Preferences — ParkOps{% endblock %}
+
+{% block dashboard_content %}
+<div class="dash-welcome-banner" style="margin-bottom: 1.5rem;">
+  <div class="welcome-text-side">
+    <h1>Account & System Settings</h1>
+    <p>Manage your operator profile, real-time telemetry refresh rates, and security credentials.</p>
+  </div>
+  <div class="welcome-badge-side">
+    <span class="live-pill"><span class="pulse-dot"></span> System Connected</span>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+  
+  <!-- PROFILE SETTINGS FORM -->
+  <div class="dash-card">
+    <div class="card-header-row" style="margin-bottom: 1rem;">
+      <h2 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0;">Operator Profile</h2>
+      <span style="font-size: 0.8rem; color: var(--navy-muted);">Personal Information</span>
+    </div>
+
+    <form method="POST" action="{{ url_for('settings') }}">
+      <input type="hidden" name="action" value="profile">
+
+      <div style="margin-bottom: 1rem;">
+        <label for="fullName" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--navy-dark);">Full Name</label>
+        <input type="text" id="fullName" name="full_name" value="{{ user['full_name'] if user else '' }}" required style="width: 100%; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.85rem;">
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label for="emailAddr" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--navy-dark);">Email Address</label>
+        <input type="email" id="emailAddr" value="{{ user['email'] if user else '' }}" disabled style="width: 100%; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.85rem; background: var(--bg-soft-blue); color: var(--navy-muted);">
+        <span style="font-size: 0.75rem; color: var(--navy-muted);">Email cannot be changed directly in demo mode.</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+        <div>
+          <label for="phoneNum" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--navy-dark);">Phone Number</label>
+          <input type="text" id="phoneNum" name="phone" value="{{ user['phone'] if user and user['phone'] else '' }}" placeholder="+1 (555) 000-0000" style="width: 100%; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.85rem;">
+        </div>
+        <div>
+          <label for="countryLoc" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--navy-dark);">Country</label>
+          <input type="text" id="countryLoc" name="country" value="{{ user['country'] if user and user['country'] else '' }}" placeholder="United States" style="width: 100%; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.85rem;">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="padding: 0.65rem 1.25rem; font-size: 0.85rem; font-weight: 700;">
+        Save Profile Changes
+      </button>
+    </form>
+  </div>
+
+  <!-- SECURITY / PASSWORD CHANGE -->
+  <div class="dash-card">
+    <div class="card-header-row" style="margin-bottom: 1rem;">
+      <h2 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0;">Security & Credentials</h2>
+      <span style="font-size: 0.8rem; color: var(--navy-muted);">Password Protection</span>
+    </div>
+
+    <form method="POST" action="{{ url_for('settings') }}">
+      <input type="hidden" name="action" value="password">
+
+      <div style="margin-bottom: 1rem;">
+        <label for="oldPassword" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--navy-dark);">Current Password</label>
+        <input type="password" id="oldPassword" name="old_password" required placeholder="Enter current password" style="width: 100%; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.85rem;">
+      </div>
+
+      <div style="margin-bottom: 1.25rem;">
+        <label for="newPassword" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--navy-dark);">New Password (min 6 characters)</label>
+        <input type="password" id="newPassword" name="new_password" required placeholder="Enter new secure password" style="width: 100%; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.85rem;">
+      </div>
+
+      <button type="submit" class="btn btn-outline" style="padding: 0.65rem 1.25rem; font-size: 0.85rem; font-weight: 700;">
+        Update Password
+      </button>
+    </form>
+
+    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-weight: 700; font-size: 0.85rem; color: var(--navy-dark);">Active Session</div>
+        <div style="font-size: 0.75rem; color: var(--navy-muted);">Logged in via Flask Session Cookie</div>
+      </div>
+      <a href="{{ url_for('logout') }}" class="btn btn-primary" style="background: #ef4444; border-color: #ef4444; padding: 0.4rem 0.85rem; font-size: 0.8rem; text-decoration: none;">
+        Sign Out Everywhere
+      </a>
+    </div>
+  </div>
+
+</div>
+
+
+
+<!-- APPLICATION PREFERENCES & DISPLAY -->
+<div class="dash-card">
+  <div class="card-header-row" style="margin-bottom: 1rem;">
+    <h2 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0;">Application Telemetry Preferences</h2>
+    <span style="font-size: 0.8rem; color: var(--navy-muted);">Client-Side Configurations</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+    <div style="background: var(--bg-soft-blue); padding: 1rem; border-radius: 10px;">
+      <div style="font-weight: 700; color: var(--navy-dark); font-size: 0.9rem; margin-bottom: 0.25rem;">Auto-Refresh Interval</div>
+      <p style="font-size: 0.75rem; color: var(--navy-muted); margin-bottom: 0.75rem;">Frequency of IoT turnstile background polling</p>
+      <select style="width: 100%; padding: 0.45rem 0.75rem; border-radius: 6px; border: 1px solid rgba(0,0,0,0.1); font-size: 0.85rem;">
+        <option value="30">Every 30 seconds (Recommended)</option>
+        <option value="60">Every 60 seconds</option>
+        <option value="off">Manual Refresh Only</option>
+      </select>
+    </div>
+
+    <div style="background: var(--bg-soft-blue); padding: 1rem; border-radius: 10px;">
+      <div style="font-weight: 700; color: var(--navy-dark); font-size: 0.9rem; margin-bottom: 0.25rem;">AI Recommendation Alerts</div>
+      <p style="font-size: 0.75rem; color: var(--navy-muted); margin-bottom: 0.75rem;">Push banner triggers for high bottleneck zones</p>
+      <select style="width: 100%; padding: 0.45rem 0.75rem; border-radius: 6px; border: 1px solid rgba(0,0,0,0.1); font-size: 0.85rem;">
+        <option value="high">High & Critical Surges Only</option>
+        <option value="all">All Operational Suggestions</option>
+        <option value="silent">Silent / Logging Only</option>
+      </select>
+    </div>
+
+    <div style="background: var(--bg-soft-blue); padding: 1rem; border-radius: 10px;">
+      <div style="font-weight: 700; color: var(--navy-dark); font-size: 0.9rem; margin-bottom: 0.25rem;">Visual Theme Preset</div>
+      <p style="font-size: 0.75rem; color: var(--navy-muted); margin-bottom: 0.75rem;">Color styling palette</p>
+      <select style="width: 100%; padding: 0.45rem 0.75rem; border-radius: 6px; border: 1px solid rgba(0,0,0,0.1); font-size: 0.85rem;">
+        <option value="pastel">ParkOps Pastel Radiance (Default)</option>
+        <option value="high-contrast">High-Contrast Accessible</option>
+      </select>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Stage 1: Real Park — ParkOps{% endblock %}
+
+{% block dashboard_content %}
+
+{% include "workflow_header.html" %}
+
+<!-- STAGE HEADER BANNER -->
+<div class="dash-welcome-banner" style="margin-bottom: 1.5rem;">
+  <div class="welcome-text-side">
+    <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.25rem;">
+      <span style="font-size: 1.65rem;">🏞️</span>
+      <h1 style="font-size: 1.65rem; color: var(--navy-dark); margin: 0;">Stage 1: Real Park</h1>
+    </div>
+    <p style="color: var(--navy-muted); font-size: 0.92rem; margin: 0;">
+      Real-world theme park conditions are the source of ParkOps.
+    </p>
+  </div>
+  <div class="welcome-badge-side">
+    <span class="badge-status badge-operational" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+      ● Physical Sensors Active
+    </span>
+  </div>
+</div>
+
+<!-- REAL PARK TELEMETRY SUMMARY CARD -->
+<div class="dash-card" style="margin-bottom: 1.5rem; padding: 1.5rem;">
+  <div class="card-header-row" style="margin-bottom: 1.25rem;">
+    <div>
+      <span class="section-tag" style="font-size: 0.72rem; padding: 0.2rem 0.65rem; margin-bottom: 0.2rem;">Telemetry Source</span>
+      <h2 style="font-size: 1.25rem; color: var(--navy-dark); margin: 0;">Physical Park State</h2>
+    </div>
+    <span style="font-size: 0.78rem; color: var(--navy-muted); font-weight: 600;">
+      Park: {{ park_state.park.name if park_state and park_state.park else 'ParkOps Adventure Park' }}
+    </span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    
+    <div style="background: #fff1f2; border: 1.5px solid #ffe4e6; padding: 1rem; border-radius: 12px;">
+      <span style="font-size: 0.75rem; font-weight: 800; color: var(--navy-muted); text-transform: uppercase;">👥 Visitors</span>
+      <div style="font-size: 1.6rem; font-weight: 800; color: var(--navy-dark); margin: 0.2rem 0;">
+        {{ "{:,}".format(stats.total_visitors if stats and stats.total_visitors else 12450) }}
+      </div>
+      <span style="font-size: 0.74rem; color: #e11d48; font-weight: 700;">
+        / {{ "{:,}".format(stats.total_capacity if stats and stats.total_capacity else 25000) }} Max Capacity
+      </span>
+    </div>
+
+    <div style="background: #f0fdf4; border: 1.5px solid #dcfce7; padding: 1rem; border-radius: 12px;">
+      <span style="font-size: 0.75rem; font-weight: 800; color: var(--navy-muted); text-transform: uppercase;">🎢 Rides Fleet</span>
+      <div style="font-size: 1.6rem; font-weight: 800; color: var(--navy-dark); margin: 0.2rem 0;">
+        {{ stats.active_rides_ratio if stats and stats.active_rides_ratio else '18 / 20' }}
+      </div>
+      <span style="font-size: 0.74rem; color: #16a34a; font-weight: 700;">
+        Operational Fleet Status
+      </span>
+    </div>
+
+    <div style="background: #fefce8; border: 1.5px solid #fef08a; padding: 1rem; border-radius: 12px;">
+      <span style="font-size: 0.75rem; font-weight: 800; color: var(--navy-muted); text-transform: uppercase;">⏱️ Queues</span>
+      <div style="font-size: 1.6rem; font-weight: 800; color: var(--navy-dark); margin: 0.2rem 0;">
+        {{ stats.average_queue_str if stats and stats.average_queue_str else '24 min' }}
+      </div>
+      <span style="font-size: 0.74rem; color: #ca8a04; font-weight: 700;">
+        Live Park Average Wait Time
+      </span>
+    </div>
+
+    <div style="background: #f0f9ff; border: 1.5px solid #bae6fd; padding: 1rem; border-radius: 12px;">
+      <span style="font-size: 0.75rem; font-weight: 800; color: var(--navy-muted); text-transform: uppercase;">☀️ Weather</span>
+      <div style="font-size: 1.6rem; font-weight: 800; color: var(--navy-dark); margin: 0.2rem 0;">
+        {{ stats.weather if stats and stats.weather else 'Sunny' }}
+      </div>
+      <span style="font-size: 0.74rem; color: #0284c7; font-weight: 700;">
+        24°C Environmental Sensor Feed
+      </span>
+    </div>
+
+  </div>
+
+  <div style="background: #fafcff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; font-size: 0.85rem; color: var(--navy-dark); margin-bottom: 1.5rem;">
+    <strong style="display: block; margin-bottom: 0.35rem;">✓ Physical Sensors Status:</strong>
+    Turnstiles: <span style="color: #10b981; font-weight: 700;">Active</span> • 
+    Attraction RFID: <span style="color: #10b981; font-weight: 700;">Synced</span> • 
+    Facility Sensors: <span style="color: #10b981; font-weight: 700;">Online</span> • 
+    Weather Telemetry: <span style="color: #0284c7; font-weight: 700;">Clear</span>
+  </div>
+
+  <!-- NAVIGATION ACTION -->
+  <div style="display: flex; justify-content: flex-end; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 1rem;">
+    <a href="{{ url_for('park_data') }}" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-weight: 800; font-size: 0.92rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+      NEXT → PARK DATA 📊
+    </a>
+  </div>
+</div>
+
+{% endblock %}

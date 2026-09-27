@@ -1,0 +1,130 @@
+<div class="dash-card pipeline-header-card" style="margin-bottom: 1.5rem; padding: 1.1rem 1.4rem; width: 100%; box-sizing: border-box; background: linear-gradient(135deg, #ffffff 0%, #fbfdff 100%); border: 1.5px solid var(--card-border); border-radius: 18px; box-shadow: 0 4px 16px rgba(0,0,0,0.03);">
+  
+  <!-- PIPELINE TITLE & SUBTITLE -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+    <div>
+      <div style="font-size: 0.95rem; font-weight: 800; color: var(--navy-dark); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.1rem;">🔄</span> PARKOPS INTELLIGENCE PIPELINE
+      </div>
+      <div style="font-size: 0.8rem; color: var(--navy-muted); font-weight: 600; margin-top: 0.15rem;">
+        "From real park data to an informed operator decision"
+      </div>
+    </div>
+    <span class="live-pill" style="font-size: 0.75rem; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 0.35rem 0.75rem;">
+      <span class="pulse-dot" style="background: #10b981;"></span>
+      Stage {{ current_stage if current_stage else 1 }} of 9 Active
+    </span>
+  </div>
+  
+  <!-- CONNECTED STAGE CARDS FLEX CONTAINER -->
+  <div class="intelligence-pipeline-flow">
+    
+    <!-- Step 1: REAL PARK -->
+    <a href="{{ url_for('real_park') }}" class="pipe-step-card {{ 'active' if current_stage == 1 else ('completed' if current_stage > 1 else 'pending') }}">
+      <div class="pipe-card-top">
+        <span class="pipe-num">①</span>
+        <span class="pipe-icon">🌳</span>
+        {% if current_stage == 1 %}<span class="pipe-badge active">ACTIVE</span>{% elif current_stage > 1 %}<span class="pipe-badge done">✓</span>{% else %}<span class="pipe-badge pending">○</span>{% endif %}
+      </div>
+      <div class="pipe-title">Real Park</div>
+      <div class="pipe-sub">Physical park state</div>
+    </a>
+    <span class="pipe-arrow">→</span>
+
+    <!-- Step 2: PARK DATA -->
+    <a href="{{ url_for('park_data') }}" class="pipe-step-card {{ 'active' if current_stage == 2 else ('completed' if current_stage > 2 else 'pending') }}">
+      <div class="pipe-card-top">
+        <span class="pipe-num">②</span>
+        <span class="pipe-icon">📊</span>
+        {% if current_stage == 2 %}<span class="pipe-badge active">ACTIVE</span>{% elif current_stage > 2 %}<span class="pipe-badge done">✓</span>{% else %}<span class="pipe-badge pending">○</span>{% endif %}
+      </div>
+      <div class="pipe-title">Park Data</div>
+      <div class="pipe-sub">Uploaded park data</div>
+    </a>
+    <span class="pipe-arrow">→</span>
+
+    <!-- Step 3: DIGITAL MODEL -->
+    <a href="{{ url_for('digital_model') }}" class="pipe-step-card {{ 'active' if current_stage == 3 else ('completed' if current_stage > 3 else 'pending') }}">
+      <div class="pipe-card-top">
+        <span class="pipe-num">③</span>
+        <span class="pipe-icon">🌐</span>
+        {% if current_stage == 3 %}<span class="pipe-badge active">ACTIVE</span>{% elif current_stage > 3 %}<span class="pipe-badge done">✓</span>{% else %}<span class="pipe-badge pending">○</span>{% endif %}
+      </div>
+      <div class="pipe-title">Digital Model</div>
+      <div class="pipe-sub">Virtual park</div>
+    </a>
+    <span class="pipe-arrow">→</span>
+
+    <!-- Step 4: AI AGENT -->
+    <a href="{{ url_for('ai_agent') }}" class="pipe-step-card {{ 'active' if current_stage == 4 else ('completed' if current_stage > 4 else 'pending') }}">
+      <div class="pipe-card-top">
+        <span class="pipe-num">④</span>
+        <span class="pipe-icon">🤖</span>
+        {% if current_stage == 4 %}<span class="pipe-badge active">ACTIVE</span>{% elif current_stage > 4 %}<span class="pipe-badge done">✓</span>{% else %}<span class="pipe-badge pending">○</span>{% endif %}
+      </div>
+      <div class="pipe-title">AI Agent</div>
+      <div class="pipe-sub">Park intelligence</div>
+    </a>
+    <span class="pipe-arrow">→</span>
+
+    <!-- Step 5: MONITOR -->
+    <a href="{{ url_for('monitor') }}" class="pipe-step-card {{ 'active' if current_stage == 5 else ('completed' if current_stage > 5 else 'pending') }}">
+      <div class="pipe-card-top">
+        <span class="pipe-num">⑤</span>
+        <span class="pipe-icon">👁</span>
+        {% if current_stage == 5 %}<span class="pipe-badge active">ACTIVE</span>{% elif current_stage > 5 %}<span class="pipe-badge done">✓</span>{% else %}<span class="pipe-badge pending">○</span>{% endif %}
+      </div>
+      <div class="pipe-title">Monitor</div>
+      <div class="pipe-sub">Live monitoring</div>
+    </a>
+    <span class="pipe-arrow">→</span>
+
+    <!-- Step 6: PREDICT -->
+    <a href="{{ url_for('predict') }}" class="pipe-step-card {{ 'active' if current_stage == 6 else ('completed' if current_stage > 6 else 'pending') }}">
+      <div class="pipe-card-top">
+        <span class="pipe-num">⑥</span>
+        <span class="pipe-icon">🔮</span>
+        {% if current_stage == 6 %}<span class="pipe-badge active">ACTIVE</span>{% elif current_stage > 6 %}<span class="pipe-badge done">✓</span>{% else %}<span class="pipe-badge pending">○</span>{% endif %}
+      </div>
+      <div class="pipe-title">Predict</div>
+      <div class="pipe-sub">Near-future state</div>
+    </a>
+    <span class="pipe-arrow">→</span>
+
+    <!-- Step 7: SIMULATE -->
+    <a href="{{ url_for('simulate') }}" class="pipe-step-card {{ 'active' if current_stage == 7 else ('completed' if current_stage > 7 else 'pending') }}">
+      <div class="pipe-card-top">
+        <span class="pipe-num">⑦</span>
+        <span class="pipe-icon">🧪</span>
+        {% if current_stage == 7 %}<span class="pipe-badge active">ACTIVE</span>{% elif current_stage > 7 %}<span class="pipe-badge done">✓</span>{% else %}<span class="pipe-badge pending">○</span>{% endif %}
+      </div>
+      <div class="pipe-title">What-If</div>
+      <div class="pipe-sub">Scenario testing</div>
+    </a>
+    <span class="pipe-arrow">→</span>
+
+    <!-- Step 8: RECOMMEND -->
+    <a href="{{ url_for('recommend') }}" class="pipe-step-card {{ 'active' if current_stage == 8 else ('completed' if current_stage > 8 else 'pending') }}">
+      <div class="pipe-card-top">
+        <span class="pipe-num">⑧</span>
+        <span class="pipe-icon">💡</span>
+        {% if current_stage == 8 %}<span class="pipe-badge active">ACTIVE</span>{% elif current_stage > 8 %}<span class="pipe-badge done">✓</span>{% else %}<span class="pipe-badge pending">○</span>{% endif %}
+      </div>
+      <div class="pipe-title">Recommend</div>
+      <div class="pipe-sub">Operator advice</div>
+    </a>
+    <span class="pipe-arrow">→</span>
+
+    <!-- Step 9: OPERATOR -->
+    <a href="{{ url_for('operator_decision') }}" class="pipe-step-card {{ 'active' if current_stage == 9 else ('completed' if current_stage > 9 else 'pending') }}">
+      <div class="pipe-card-top">
+        <span class="pipe-num">⑨</span>
+        <span class="pipe-icon">👤</span>
+        {% if current_stage == 9 %}<span class="pipe-badge active">ACTIVE</span>{% elif current_stage > 9 %}<span class="pipe-badge done">✓</span>{% else %}<span class="pipe-badge pending">○</span>{% endif %}
+      </div>
+      <div class="pipe-title">Operator</div>
+      <div class="pipe-sub">Human decision</div>
+    </a>
+
+  </div>
+</div>

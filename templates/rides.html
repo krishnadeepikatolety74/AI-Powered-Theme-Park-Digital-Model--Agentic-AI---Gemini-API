@@ -1,0 +1,210 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Rides Management — ParkOps{% endblock %}
+
+{% block dashboard_content %}
+<div class="dash-welcome-banner" style="margin-bottom: 1.5rem;">
+  <div class="welcome-text-side">
+    <h1 style="font-size: 1.65rem; color: var(--navy-dark); margin: 0 0 0.25rem 0;">🎢 Rides & Attractions Fleet</h1>
+    <p style="color: var(--navy-muted); font-size: 0.92rem; margin: 0;">
+      {% if park_state and park_state.has_data %}
+        Live status monitoring, queue wait telemetry, and ride utilization for {{ park_state.park.name }}.
+      {% else %}
+        No park dataset loaded. Upload a dataset to load ride information.
+      {% endif %}
+    </p>
+  </div>
+  <div class="welcome-badge-side">
+    <span class="live-pill">
+      <span class="pulse-dot" style="background: {% if park_state and park_state.has_data %}#10b981{% else %}#f59e0b{% endif %};"></span>
+      {% if park_state and park_state.has_data %}{{ stats.total }} Attractions Monitored{% else %}Waiting for Data{% endif %}
+    </span>
+  </div>
+</div>
+
+{% if park_state and park_state.has_data %}
+<!-- FLEET STATS KPI CARDS -->
+<div class="kpi-grid" style="margin-bottom: 1.5rem;">
+  <div class="kpi-card">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Total Attractions</span>
+      <span class="kpi-icon-wrap" style="background: rgba(255, 107, 139, 0.12); color: var(--pink-primary);">🎢</span>
+    </div>
+    <div class="kpi-val">{{ stats.total }}</div>
+    <div class="kpi-badge-row">
+      <span class="kpi-trend up">Uploaded Fleet</span>
+      <span class="kpi-subtext">Telemetry active</span>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Operational</span>
+      <span class="kpi-icon-wrap" style="background: rgba(52, 211, 153, 0.12); color: #059669;">✅</span>
+    </div>
+    <div class="kpi-val" style="color: #059669;">{{ stats.operational }}</div>
+    <div class="kpi-badge-row">
+      <span class="kpi-trend up">Active Fleet</span>
+      <span class="kpi-subtext">Turnstiles open</span>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-top-row">
+      <span class="kpi-title">In Maintenance</span>
+      <span class="kpi-icon-wrap" style="background: rgba(251, 191, 36, 0.15); color: #d97706;">🛠️</span>
+    </div>
+    <div class="kpi-val" style="color: #d97706;">{{ stats.maintenance }}</div>
+    <div class="kpi-badge-row">
+      <span class="kpi-subtext">Routine inspection</span>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Avg Utilization</span>
+      <span class="kpi-icon-wrap" style="background: rgba(96, 165, 250, 0.15); color: #2563eb;">⚡</span>
+    </div>
+    <div class="kpi-val">{{ stats.avg_utilization }}%</div>
+    <div class="kpi-badge-row">
+      <span class="kpi-trend up">Capacity Load</span>
+      <span class="kpi-subtext">Calculated utilization</span>
+    </div>
+  </div>
+</div>
+
+<!-- FILTER & SEARCH BAR -->
+<div class="dash-card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+      <span style="font-weight: 700; color: var(--navy-dark); font-size: 0.9rem; margin-right: 0.5rem;">STATUS:</span>
+      <button class="filter-chip active" onclick="filterRides('all', this)">All Rides ({{ stats.total }})</button>
+      <button class="filter-chip" onclick="filterRides('Operational', this)">Operational ({{ stats.operational }})</button>
+      <button class="filter-chip" onclick="filterRides('Maintenance', this)">Maintenance ({{ stats.maintenance }})</button>
+      <button class="filter-chip" onclick="filterRides('Offline', this)">Offline ({{ stats.offline }})</button>
+    </div>
+    <div style="position: relative; min-width: 260px;">
+      <input type="text" id="rideSearch" onkeyup="searchRides()" placeholder="Search ride by name or zone..." style="width: 100%; padding: 0.55rem 1rem 0.55rem 2.2rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); font-size: 0.85rem; outline: none;">
+      <svg style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--navy-muted); width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    </div>
+  </div>
+</div>
+
+<!-- RIDES TABLE -->
+<div class="dash-card" style="padding: 0; overflow: hidden;">
+  <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <h2 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0;">Attraction Telemetry & Queue Index</h2>
+      <p style="font-size: 0.8rem; color: var(--navy-muted); margin: 0.2rem 0 0 0;">Synchronized live from uploaded database telemetry</p>
+    </div>
+  </div>
+
+  <div style="overflow-x: auto;">
+    <table class="dash-table" id="ridesTable" style="width: 100%; text-align: left; border-collapse: collapse;">
+      <thead>
+        <tr style="background: var(--bg-soft-blue); color: var(--navy-dark); font-size: 0.85rem;">
+          <th style="padding: 1rem 1.5rem;">Ride Name</th>
+          <th style="padding: 1rem;">Park Zone</th>
+          <th style="padding: 1rem;">Category</th>
+          <th style="padding: 1rem;">Status</th>
+          <th style="padding: 1rem;">Current Queue</th>
+          <th style="padding: 1rem;">Capacity / Hr</th>
+          <th style="padding: 1rem 1.5rem;">Load Utilization</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rides %}
+        <tr class="ride-row" data-status="{{ r.status }}" data-name="{{ r.name | lower }}" data-zone="{{ (r.zone_name if r.zone_name else (r.zone if r.zone else '')) | lower }}" style="border-bottom: 1px solid rgba(0,0,0,0.04);">
+          <td style="padding: 1rem 1.5rem; font-weight: 700; color: var(--navy-dark);">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span style="font-size: 1.1rem;">
+                {{ r.icon if r.icon else '🎢' }}
+              </span>
+              <span>{{ r.name }}</span>
+            </div>
+          </td>
+          <td style="padding: 1rem; color: var(--navy-muted); font-size: 0.85rem;">{{ r.zone_name if r.zone_name else (r.zone if r.zone else 'General Zone') }}</td>
+          <td style="padding: 1rem; color: var(--navy-muted); font-size: 0.85rem;">{{ r.ride_type if r.ride_type else 'Attraction' }}</td>
+          <td style="padding: 1rem;">
+            {% if r.status == 'Operational' %}
+              <span class="badge-status badge-operational"><span class="pulse-dot"></span> Operational</span>
+            {% elif r.status == 'Maintenance' %}
+              <span class="badge-status badge-maintenance">Maintenance</span>
+            {% else %}
+              <span class="badge-status badge-offline">Offline</span>
+            {% endif %}
+          </td>
+          <td style="padding: 1rem; font-weight: 700; color: var(--navy-dark); font-size: 0.9rem;">
+            {% if r.status == 'Operational' %}
+              {{ r.current_queue if r.current_queue is defined else r.average_wait_time }} min
+            {% else %}
+              <span style="color: var(--navy-muted); font-weight: 400;">—</span>
+            {% endif %}
+          </td>
+          <td style="padding: 1rem; color: var(--navy-muted); font-size: 0.85rem;">{{ "{:,}".format(r.capacity_per_hour if r.capacity_per_hour is defined else 1000) }} guests</td>
+          <td style="padding: 1rem 1.5rem;">
+            {% if r.status == 'Operational' %}
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div style="flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+                <div style="width: {{ r.utilization }}%; height: 100%; background: {% if r.utilization > 80 %}#ff6b8b{% elif r.utilization > 60 %}#fbbf24{% else %}#34d399{% endif %}; border-radius: 4px;"></div>
+              </div>
+              <span style="font-size: 0.85rem; font-weight: 700; color: var(--navy-dark); min-width: 35px;">{{ r.utilization }}%</span>
+            </div>
+            {% else %}
+              <span style="font-size: 0.85rem; color: var(--navy-muted);">0% (Standby)</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<!-- EMPTY STATE FOR RIDES PAGE (SECTION 10 OF SPEC) -->
+<div class="dash-card" style="text-align: center; padding: 3rem 1.5rem;">
+  <div style="font-size: 3.5rem; margin-bottom: 0.75rem;">🎢</div>
+  <h2 style="font-size: 1.35rem; color: var(--navy-dark); margin: 0 0 0.5rem 0; font-weight: 800;">
+    🎢 No rides available
+  </h2>
+  <p style="font-size: 0.9rem; color: var(--navy-muted); margin: 0 0 1.5rem 0;">
+    Upload a park dataset to load ride information.
+  </p>
+  <a href="{{ url_for('park_data') }}" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-weight: 800; font-size: 0.95rem; text-decoration: none;">
+    📁 Upload Park Dataset
+  </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+function filterRides(status, btn) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  
+  const rows = document.querySelectorAll('.ride-row');
+  rows.forEach(row => {
+    if(status === 'all' || row.dataset.status === status) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+
+function searchRides() {
+  const query = document.getElementById('rideSearch').value.toLowerCase();
+  const rows = document.querySelectorAll('.ride-row');
+  rows.forEach(row => {
+    const name = row.dataset.name || '';
+    const zone = row.dataset.zone || '';
+    if(name.includes(query) || zone.includes(query)) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+</script>
+{% endblock %}

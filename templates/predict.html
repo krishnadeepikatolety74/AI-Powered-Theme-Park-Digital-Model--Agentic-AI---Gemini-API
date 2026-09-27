@@ -1,0 +1,142 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Stage 6: Predict — ParkOps{% endblock %}
+
+{% block dashboard_content %}
+
+{% set current_stage = 6 %}
+{% include "workflow_header.html" %}
+
+<!-- STAGE HEADER BANNER -->
+<div class="dash-welcome-banner" style="margin-bottom: 1.5rem;">
+  <div class="welcome-text-side">
+    <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.25rem;">
+      <span style="font-size: 1.65rem;">🔮</span>
+      <h1 style="font-size: 1.65rem; color: var(--navy-dark); margin: 0;">Stage 6: Predict</h1>
+    </div>
+    <p style="color: var(--navy-muted); font-size: 0.92rem; margin: 0;">
+      "Estimates what may happen next"
+    </p>
+  </div>
+  <div class="welcome-badge-side">
+    <span class="badge-status {% if park_state and park_state.has_data %}badge-operational{% else %}badge-maintenance{% endif %}" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+      {% if park_state and park_state.has_data %}
+        ✓ Near-future conditions predicted
+      {% else %}
+        ⚪ Waiting for Dataset
+      {% endif %}
+    </span>
+  </div>
+</div>
+
+{% if park_state and park_state.has_data %}
+<!-- PREDICT CARD (SECTION 13 & 14 OF SPEC) -->
+<div class="dash-card" style="margin-bottom: 1.5rem; padding: 1.75rem; background: #ffffff; border: 1.5px solid #e0f2fe; border-radius: 18px; width: 100%; box-sizing: border-box;">
+  <div style="font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; color: var(--navy-muted); text-transform: uppercase; margin-bottom: 0.35rem;">
+    🔮 PREDICT
+  </div>
+  <p style="font-size: 0.95rem; color: var(--navy-dark); font-weight: 700; margin: 0 0 1.25rem 0;">
+    "Estimates what may happen next"
+  </p>
+
+  {% set max_queue = (rides | sort(attribute='current_queue', reverse=True) | first) %}
+  {% set max_crowd = (zones | sort(attribute='occupancy_pct', reverse=True) | first) %}
+  {% set max_fac = (facilities | sort(attribute='current_demand', reverse=True) | first) %}
+  {% set cur_queue = max_queue.current_queue if max_queue else 42 %}
+
+  <!-- 3 CLEAN HTML CARDS WITH ICONS (NO MARKDOWN HASHTAGS!) -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+    
+    <!-- CARD 1: CROWD -->
+    <div style="background: linear-gradient(135deg, #ffffff 0%, #fff4f6 100%); border: 1.5px solid #fce7ec; border-radius: 14px; padding: 1.25rem; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--primary-pink); margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+          <span>👥</span> CROWD
+        </h3>
+        <span style="font-size: 0.68rem; font-weight: 800; background: var(--primary-pink); color: #ffffff; padding: 2px 7px; border-radius: 99px;">
+          HIGH EXPECTED
+        </span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.88rem; color: var(--navy-dark); font-weight: 600;">
+        <div>• <strong>Current:</strong> {{ max_crowd.crowd_level if max_crowd else 'Medium' }} ({{ max_crowd.occupancy_pct if max_crowd else 76 }}%)</div>
+        <div>• <strong>Predicted:</strong> High</div>
+        <div>• <strong>Affected Zone:</strong> {{ max_crowd.name if max_crowd else 'Adventure Zone' }}</div>
+      </div>
+    </div>
+
+    <!-- CARD 2: QUEUE -->
+    <div style="background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%); border: 1.5px solid #fef3c7; border-radius: 14px; padding: 1.25rem; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: #d97706; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+          <span>⏱</span> QUEUE
+        </h3>
+        <span style="font-size: 0.68rem; font-weight: 800; background: #f59e0b; color: #ffffff; padding: 2px 7px; border-radius: 99px;">
+          SURGE PREDICTED
+        </span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.88rem; color: var(--navy-dark); font-weight: 600;">
+        <div>• <strong>Current Wait:</strong> {{ cur_queue }} min</div>
+        <div>• <strong>Predicted Wait:</strong> {{ cur_queue + 13 }} min</div>
+        <div>• <strong>Affected Ride:</strong> {{ max_queue.name if max_queue else 'Thunder Roller Coaster' }}</div>
+      </div>
+    </div>
+
+    <!-- CARD 3: FACILITY DEMAND -->
+    <div style="background: linear-gradient(135deg, #ffffff 0%, #f3e8ff 100%); border: 1.5px solid #e9d5ff; border-radius: 14px; padding: 1.25rem; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: #7c3aed; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+          <span>🍔</span> FACILITY DEMAND
+        </h3>
+        <span style="font-size: 0.68rem; font-weight: 800; background: #8b5cf6; color: #ffffff; padding: 2px 7px; border-radius: 99px;">
+          INCREASE EXPECTED
+        </span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.88rem; color: var(--navy-dark); font-weight: 600;">
+        <div>• <strong>Current Demand:</strong> {{ stats.facility_load_str if stats and stats.facility_load_str else '68%' }}</div>
+        <div>• <strong>Predicted Demand:</strong> 81%</div>
+        <div>• <strong>Affected Facility:</strong> {{ max_fac.name if max_fac else 'Adventure Food Court' }}</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SIMPLE EXPLANATION UNDER PREDICT (SECTION 17 OF SPEC) -->
+  <div style="background: #fafcff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem;">
+    <div style="font-size: 0.88rem; font-weight: 800; color: #166534; margin-bottom: 0.4rem;">
+      ✓ ParkOps AI Agent identified possible near-future changes:
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.88rem; color: var(--navy-dark); font-weight: 600;">
+      <div>• Crowd pressure may increase in <strong>{{ max_crowd.name if max_crowd else 'Adventure Zone' }}</strong></div>
+      <div>• Queue may increase at <strong>{{ max_queue.name if max_queue else 'Thunder Roller Coaster' }}</strong></div>
+      <div>• Facility demand may increase at <strong>{{ max_fac.name if max_fac else 'Adventure Food Court' }}</strong></div>
+    </div>
+  </div>
+
+  <!-- NAVIGATION ACTION LINKING TO WHAT-IF SIMULATION -->
+  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 1rem;">
+    <span style="font-size: 0.85rem; font-weight: 800; color: #166534;">
+      ✓ Near-future conditions predicted
+    </span>
+
+    <a href="{{ url_for('simulate') }}" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-weight: 800; font-size: 0.92rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+      NEXT → WHAT-IF SIMULATION 🧪
+    </a>
+  </div>
+</div>
+{% else %}
+<!-- EMPTY STATE FOR PREDICT (SECTION 18 OF SPEC) -->
+<div class="dash-card" style="text-align: center; padding: 3.5rem 1.5rem;">
+  <div style="font-size: 4rem; margin-bottom: 0.75rem;">🔮</div>
+  <h2 style="font-size: 1.4rem; color: var(--navy-dark); margin: 0 0 0.5rem 0; font-weight: 800;">
+    🔮 PREDICT
+  </h2>
+  <p style="font-size: 0.92rem; color: var(--navy-muted); margin: 0 0 1.5rem 0;">
+    "Upload park data to generate predictions."
+  </p>
+  <a href="{{ url_for('park_data') }}" class="btn btn-primary" style="padding: 0.8rem 2rem; font-weight: 800; font-size: 0.95rem; text-decoration: none;">
+    📁 Upload Park Dataset
+  </a>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,588 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Operations Dashboard — ParkOps{% endblock %}
+
+{% block dashboard_content %}
+
+  <!-- 1. TOP WELCOME BANNER -->
+  <section class="dash-welcome-banner" style="margin-bottom: 1.25rem;">
+    <div>
+      <h1 class="welcome-title">Welcome to <span>ParkOps!</span></h1>
+      <p class="welcome-sub">
+        Smarter Decisions • Happier Visitors • Magical Experiences 💖
+      </p>
+    </div>
+    <div class="welcome-right-art">
+      Make Every Visit Magical!
+    </div>
+  </section>
+
+  <!-- 2. PARK DATA DATASET STATUS / INGESTION CARD -->
+  <section class="dash-panel-card" style="margin-bottom: 1.5rem; border: 1.5px solid {% if park_state and park_state.has_data %}#e0e7ff{% else %}#fde68a{% endif %}; background: linear-gradient(180deg, #ffffff 0%, {% if park_state and park_state.has_data %}#f8fafc{% else %}#fffbeb{% endif %} 100%);">
+    <div class="panel-header-row" style="margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
+      <div>
+        <h2 class="panel-heading" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
+          <span>📊</span> PARK STATUS
+        </h2>
+        <p style="font-size: 0.85rem; color: var(--navy-muted); margin: 0.2rem 0 0 0;">
+          {% if park_state and park_state.has_data %}
+            Active Dataset Loaded: <strong>{{ park_state.park.name }}</strong> ({{ zones|length }} Zones, {{ rides|length }} Rides, {{ facilities|length }} Facilities)
+          {% else %}
+            No park dataset loaded. Upload a park dataset to activate ParkOps.
+          {% endif %}
+        </p>
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+        <a href="{{ url_for('park_data') }}" class="btn btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.85rem; font-weight: 700; text-decoration: none;">
+          📁 Upload Park Dataset
+        </a>
+        <button type="button" class="btn btn-outline" onclick="openExcelFormatModal()" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; font-weight: 600;">
+          📋 View Excel Format
+        </button>
+        <a href="{{ url_for('api_park_data_template') }}" class="btn btn-outline" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; font-weight: 600; text-decoration: none; color: #2563eb; border-color: #93c5fd;">
+          📥 Download Template
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. FOUR KPI STAT CARDS (SHOWS 0 WHEN NO DATASET) -->
+  <section class="dash-metrics-row">
+    <!-- Card 1: Visitors -->
+    <div class="metric-box bg-pink-tint">
+      <div class="metric-top-icon">👥</div>
+      <div class="metric-big-num">
+        {% if park_state and park_state.has_data %}
+          {{ "{:,}".format(park_state.visitors) }}
+        {% else %}
+          0
+        {% endif %}
+      </div>
+      <div class="metric-title">Current Visitors</div>
+      <div class="metric-growth-tag">
+        {% if park_state and park_state.has_data %}Active In-Park{% else %}No Data Loaded{% endif %}
+      </div>
+    </div>
+
+    <!-- Card 2: Rides -->
+    <div class="metric-box bg-blue-tint">
+      <div class="metric-top-icon">🎢</div>
+      <div class="metric-big-num">
+        {% if park_state and park_state.has_data %}
+          {{ park.active_rides }} / {{ park.total_rides }}
+        {% else %}
+          0
+        {% endif %}
+      </div>
+      <div class="metric-title">Active Rides</div>
+      <div class="metric-growth-tag">
+        {% if park_state and park_state.has_data %}Fleet Operational{% else %}No Rides Monitored{% endif %}
+      </div>
+    </div>
+
+    <!-- Card 3: Avg Queue -->
+    <div class="metric-box bg-yellow-tint">
+      <div class="metric-top-icon">⏱️</div>
+      <div class="metric-big-num">
+        {% if park_state and park_state.has_data %}
+          {{ park.avg_queue_time }} min
+        {% else %}
+          0 min
+        {% endif %}
+      </div>
+      <div class="metric-title">Average Queue</div>
+      <div class="metric-growth-tag" style="color: #16a34a;">
+        {% if park_state and park_state.has_data %}Live Telemetry Wait{% else %}No Wait Data{% endif %}
+      </div>
+    </div>
+
+    <!-- Card 4: Crowd Density -->
+    <div class="metric-box bg-green-tint">
+      <div class="metric-top-icon">🏢</div>
+      <div class="metric-big-num">
+        {% if park_state and park_state.has_data %}
+          {{ park.crowd_density }}
+        {% else %}
+          0
+        {% endif %}
+      </div>
+      <div class="metric-title">Crowded Zones</div>
+      <div class="metric-growth-tag" style="color: #64748b;">
+        {% if park_state and park_state.has_data %}Sector Load Balance{% else %}No Zones Configured{% endif %}
+      </div>
+    </div>
+  </section>
+
+  {% if park_state and park_state.has_data %}
+  <!-- 4. PARK ANALYTICS (INTERACTIVE PASTEL CHARTS - ONLY WHEN DATASET LOADED) -->
+  <section class="dash-panel-card">
+    <div class="panel-header-row">
+      <h2 class="panel-heading" style="display: flex; align-items: center; gap: 0.5rem;">
+        <span>📊</span> Park Analytics & Predictive Flow
+      </h2>
+      <span class="status-badge-pill status-operational" style="font-size: 0.75rem;">● Live Telemetry Synced</span>
+    </div>
+
+    <!-- Graph 1: Visitor Flow Today -->
+    <div style="margin-bottom: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span style="font-size: 0.88rem; font-weight: 700; color: var(--navy-dark);">Visitor Flow — Today (Actual vs. AI Predicted Influx)</span>
+        <div style="display: flex; gap: 1rem; font-size: 0.78rem; font-weight: 700;">
+          <span style="color: #eb6080;">● Actual In-Park</span>
+          <span style="color: #9333ea;">-- AI Predicted Influx</span>
+        </div>
+      </div>
+      <div style="height: 220px; width: 100%;">
+        <canvas id="visitorFlowChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Graphs 2 & 3: Queue Trend & Crowd Density -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+      <div>
+        <div style="font-size: 0.88rem; font-weight: 700; color: var(--navy-dark); margin-bottom: 0.5rem;">Average Queue Time Throughout Day (Minutes)</div>
+        <div style="height: 180px;">
+          <canvas id="queueTrendChart"></canvas>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size: 0.88rem; font-weight: 700; color: var(--navy-dark); margin-bottom: 0.5rem;">Crowd Density by Zone (% of Sector Capacity)</div>
+        <div style="height: 180px;">
+          <canvas id="crowdDensityChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graph 4: Ride Utilization -->
+    <div>
+      <div style="font-size: 0.88rem; font-weight: 700; color: var(--navy-dark); margin-bottom: 0.5rem;">Attraction Fleet Utilization Rate (%)</div>
+      <div style="height: 150px;">
+        <canvas id="rideUtilizationChart"></canvas>
+      </div>
+    </div>
+  </section>
+  {% else %}
+  <!-- EMPTY STATE PANEL FOR PARK ANALYTICS -->
+  <section class="dash-panel-card" style="text-align: center; padding: 2.5rem 1.5rem; margin-bottom: 1.5rem;">
+    <div style="font-size: 3rem; margin-bottom: 0.5rem;">📊</div>
+    <h3 style="font-size: 1.2rem; color: var(--navy-dark); margin: 0 0 0.4rem 0; font-weight: 800;">
+      No Park Dataset Loaded
+    </h3>
+    <p style="font-size: 0.88rem; color: var(--navy-muted); margin: 0 0 1.25rem 0;">
+      Upload a park dataset to activate ParkOps analytics and predictive charts.
+    </p>
+    <a href="{{ url_for('park_data') }}" class="btn btn-primary" style="padding: 0.65rem 1.5rem; font-weight: 800; text-decoration: none;">
+      📁 Upload Park Dataset
+    </a>
+  </section>
+  {% endif %}
+
+  <!-- 5. DIGITAL MODEL MAP SECTION -->
+  <section class="dash-panel-card" id="map-card" style="margin-bottom: 1.5rem; padding: 1.5rem; background: #ffffff; border: 1.5px solid #e0f2fe; border-radius: 18px; width: 100%; box-sizing: border-box;">
+    <div class="panel-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+      <div>
+        <h2 class="panel-heading" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem; color: var(--navy-dark); margin: 0; font-weight: 800;">
+          <span>🌐</span> DIGITAL MODEL
+        </h2>
+        <p style="font-size: 0.82rem; color: var(--navy-muted); margin: 0.2rem 0 0 0;">
+          {% if park_state and park_state.has_data %}
+            Interactive real-time spatial intelligence overview
+          {% else %}
+            No Park Data
+          {% endif %}
+        </p>
+      </div>
+      {% if park_state and park_state.has_data %}
+        <a href="{{ url_for('digital_model') }}" class="view-all-link" style="font-size: 0.85rem; font-weight: 800; color: var(--primary-pink); text-decoration: none;">Expand Full Digital Model →</a>
+      {% endif %}
+    </div>
+
+    {% if park_state and park_state.has_data %}
+    <!-- 100% RESPONSIVE DIGITAL MODEL MAP VIEWPORT -->
+    <div class="model-map-canvas-wrap" style="position: relative; border-radius: 16px; overflow: hidden; height: 440px; background: #e0f2fe; border: 1.5px solid #cbd5e1; width: 100%; max-width: 100%; box-sizing: border-box; box-shadow: inset 0 0 15px rgba(0,0,0,0.06);">
+      
+      <!-- BACKGROUND MAP IMAGE -->
+      <img src="{{ url_for('static', filename='images/dashboard-model-map.png') }}?v=3" alt="ParkOps Digital Model Map" style="position: absolute; top:0; left:0; width: 100%; height: 100%; object-fit: cover; opacity: 0.95; filter: contrast(1.05) brightness(1.02); z-index: 1;">
+      
+      <!-- DATA-DRIVEN SVG ZONE BOUNDARY RECTANGLES -->
+      <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto; z-index: 2;" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {% for z in zones %}
+        {% set zx = z.x_position if z.x_position <= 100 else (z.x_position / 1000 * 100) %}
+        {% set zy = z.y_position if z.y_position <= 100 else (z.y_position / 800 * 100) %}
+        {% set zw = z.width if z.width <= 100 else (z.width / 1000 * 100) %}
+        {% set zh = z.height if z.height <= 100 else (z.height / 800 * 100) %}
+        {% set fill_color = 'rgba(16, 185, 129, 0.25)' if z.crowd_level == 'Low' else ('rgba(245, 158, 11, 0.28)' if z.crowd_level == 'Medium' else ('rgba(235, 96, 128, 0.32)' if z.crowd_level == 'High' else 'rgba(220, 38, 38, 0.38)')) %}
+        {% set stroke_color = '#10b981' if z.crowd_level == 'Low' else ('#f59e0b' if z.crowd_level == 'Medium' else ('#eb6080' if z.crowd_level == 'High' else '#dc2626')) %}
+        <rect id="dashZoneRect-{{ z.id }}" class="map-zone-polygon" 
+              x="{{ zx }}" y="{{ zy }}" width="{{ zw }}" height="{{ zh }}" 
+              rx="2.5" ry="2.5"
+              fill="{{ fill_color }}" stroke="{{ stroke_color }}" stroke-width="1.2" stroke-dasharray="2.5 1.5"
+              style="cursor: pointer; transition: all 0.3s ease;">
+          <title>{{ z.name }}: {{ z.crowd_level }} Density ({{ z.occupancy_pct }}% | {{ z.current_visitors }} guests)</title>
+        </rect>
+        {% endfor %}
+      </svg>
+
+      <!-- READABLE ZONE OVERLAY BADGES -->
+      {% for z in zones %}
+      {% set zx = z.x_position if z.x_position <= 100 else (z.x_position / 1000 * 100) %}
+      {% set zy = z.y_position if z.y_position <= 100 else (z.y_position / 800 * 100) %}
+      {% set zw = z.width if z.width <= 100 else (z.width / 1000 * 100) %}
+      {% set zh = z.height if z.height <= 100 else (z.height / 800 * 100) %}
+      {% set stroke_color = '#10b981' if z.crowd_level == 'Low' else ('#f59e0b' if z.crowd_level == 'Medium' else ('#eb6080' if z.crowd_level == 'High' else '#dc2626')) %}
+      <div style="position: absolute; top: {{ zy + 1 }}%; left: {{ zx + 1 }}%; z-index: 3; pointer-events: none; max-width: {{ zw - 2 }}%;">
+        <a href="{{ url_for('digital_model') }}" style="pointer-events: auto; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(4px); border: 1.5px solid {{ stroke_color }}; border-radius: 8px; padding: 2px 7px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <span style="font-size: 0.72rem; font-weight: 800; color: var(--navy-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;">
+            🎢 {{ z.name }}
+          </span>
+          <span style="font-size: 0.65rem; font-weight: 800; color: #ffffff; background: {{ stroke_color }}; padding: 1px 5px; border-radius: 99px; white-space: nowrap;">
+            {{ z.occupancy_pct }}%
+          </span>
+        </a>
+      </div>
+      {% endfor %}
+
+      <!-- DATA-DRIVEN SMALL RIDE MARKERS -->
+      {% for r in rides %}
+      {% set rx = r.x_position if r.x_position <= 100 else (r.x_position / 1000 * 100) %}
+      {% set ry = r.y_position if r.y_position <= 100 else (r.y_position / 800 * 100) %}
+      <div id="dashRidePin-{{ r.id }}" class="map-interactive-pin layer-rides" 
+           style="position: absolute; top: {{ ry }}%; left: {{ rx }}%; z-index: 5; transform: translate(-50%, -50%); cursor: pointer;">
+        <div class="pin-marker" style="background: {{ '#10b981' if r.status == 'Operational' else ('#f59e0b' if r.status == 'Maintenance' else '#ef4444') }}; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.25); border: 2px solid #fff; font-size: 0.8rem;">
+          {{ r.icon if r.icon else ('🎢' if 'Coaster' in r.name else ('🎡' if 'Wheel' in r.name else ('🌊' if 'Water' in r.name or 'Splash' in r.name else '🚀'))) }}
+        </div>
+        <div class="pin-label-tag" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 1px; white-space: nowrap; background: rgba(15, 23, 42, 0.92); color: #fff; font-size: 0.6rem; font-weight: 700; padding: 1px 4px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 2px 5px rgba(0,0,0,0.3); pointer-events: none;">
+          {{ r.name }}
+        </div>
+        <div class="pin-tooltip">
+          <strong>Ride:</strong> {{ r.name }}<br>
+          <strong>Queue:</strong> {{ r.current_queue if r.current_queue is defined else r.average_wait_time }} visitors<br>
+          <strong>Wait:</strong> {{ r.average_wait_time }} min<br>
+          <strong>Status:</strong> {{ r.status }}
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- DATA-DRIVEN SMALL FACILITY MARKERS -->
+      {% for f in facilities %}
+      {% set fx = f.x_position if f.x_position <= 100 else (f.x_position / 1000 * 100) %}
+      {% set fy = f.y_position if f.y_position <= 100 else (f.y_position / 800 * 100) %}
+      <div id="dashFacPin-{{ f.id }}" class="map-interactive-pin layer-facilities" 
+           style="position: absolute; top: {{ fy }}%; left: {{ fx }}%; z-index: 4; transform: translate(-50%, -50%); cursor: pointer;">
+        <div class="pin-marker" style="background: {{ '#10b981' if f.status == 'Available' else ('#f59e0b' if f.status == 'Busy' else '#ef4444') }}; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); border: 2px solid #fff; font-size: 0.72rem;">
+          {{ f.icon if f.icon else ('🍔' if 'Food' in f.name or 'Grill' in f.name or 'Bistro' in f.name else ('🚻' if 'Restroom' in f.name else ('🏥' if 'Aid' in f.name else 'ℹ️'))) }}
+        </div>
+        <div class="pin-label-tag" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 1px; white-space: nowrap; background: rgba(15, 23, 42, 0.92); color: #94a3b8; font-size: 0.58rem; font-weight: 700; padding: 1px 4px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 2px 5px rgba(0,0,0,0.3); pointer-events: none;">
+          {{ f.name }}
+        </div>
+        <div class="pin-tooltip">
+          <strong>Facility:</strong> {{ f.name }}<br>
+          <strong>Demand:</strong> {{ f.current_demand }}/{{ f.capacity }}<br>
+          <strong>Status:</strong> {{ f.status }}
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- MAP LEGEND -->
+      <div class="model-map-legend" style="position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.92); backdrop-filter: blur(4px); padding: 0.35rem 0.65rem; border-radius: 8px; font-size: 0.7rem; font-weight: 700; display: flex; gap: 0.6rem; z-index: 15; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <span style="color: #10b981;">● Low</span>
+        <span style="color: #f59e0b;">● Medium</span>
+        <span style="color: #eb6080;">● High</span>
+        <span style="color: #dc2626;">● Critical</span>
+      </div>
+    </div>
+    {% else %}
+    <!-- EMPTY DIGITAL MODEL STATE -->
+    <div style="text-align: center; padding: 2.5rem 1.5rem; background: #fafcff; border: 1.5px dashed #cbd5e1; border-radius: 14px;">
+      <div style="font-size: 2.8rem; margin-bottom: 0.5rem;">🌐</div>
+      <h3 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0 0 0.35rem 0; font-weight: 800;">
+        No park dataset loaded.
+      </h3>
+      <p style="font-size: 0.85rem; color: var(--navy-muted); margin: 0 0 1.25rem 0;">
+        Upload a park dataset to create your Digital Model.
+      </p>
+      <a href="{{ url_for('park_data') }}" class="btn btn-primary" style="padding: 0.65rem 1.5rem; font-weight: 800; text-decoration: none;">
+        📁 Upload Park Dataset
+      </a>
+    </div>
+    {% endif %}
+  </section>
+
+  <!-- 6. AI AGENT SUMMARY & SIMULATION SUMMARY -->
+  <section style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+    <!-- AI Agent Card -->
+    <div class="dash-panel-card" style="margin-bottom: 0; background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%); border: 1.5px solid #fce7ec; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div class="panel-header-row" style="margin-bottom: 0.75rem;">
+          <h2 class="panel-heading" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem;">
+            <span>🤖</span> AI Agent
+          </h2>
+          <span class="status-badge-pill {% if park_state and park_state.has_data %}status-operational{% else %}status-maintenance{% endif %}" style="font-size: 0.72rem;">
+            {% if park_state and park_state.has_data %}● Active{% else %}○ Waiting for Park Data{% endif %}
+          </span>
+        </div>
+
+        {% if park_state and park_state.has_data %}
+        <div style="display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.83rem; color: var(--navy-muted); margin-bottom: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="color: #10b981; font-weight: 800;">✓</span>
+            <span>Monitoring real-time park data...</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="color: #0284c7; font-weight: 800;">✓</span>
+            <span>Predicting future conditions...</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="color: #ca8a04; font-weight: 800;">✓</span>
+            <span>Running simulations...</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="color: #9333ea; font-weight: 800;">✓</span>
+            <span>Recommending actions...</span>
+          </div>
+        </div>
+        {% else %}
+        <p style="font-size: 0.85rem; color: var(--navy-muted); margin-bottom: 1rem; line-height: 1.45;">
+          Upload a park dataset to activate AI-powered park analysis.
+        </p>
+        {% endif %}
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 0.75rem;">
+        <span style="font-size: 0.75rem; color: var(--navy-muted);">ParkOps Intelligence Agent</span>
+        <a href="{{ url_for('ai_agent') }}" class="btn btn-primary" style="padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 700; text-decoration: none;">
+          Open AI Agent →
+        </a>
+      </div>
+    </div>
+
+    <!-- What-If Simulation Studio -->
+    <div class="dash-panel-card" style="margin-bottom: 0; background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%); border: 1.5px solid #dbeafe; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div class="panel-header-row" style="margin-bottom: 0.75rem;">
+          <h2 class="panel-heading" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem;">
+            <span>🧪</span> What-If Simulation
+          </h2>
+          <span class="status-badge-pill" style="background: #e0f2fe; color: #0284c7; font-size: 0.72rem;">
+            {% if park_state and park_state.has_data %}Sandbox Ready{% else %}Waiting for Data{% endif %}
+          </span>
+        </div>
+        <p style="font-size: 0.82rem; color: var(--navy-muted); margin-bottom: 0.75rem; line-height: 1.45;">
+          {% if park_state and park_state.has_data %}
+            Stress-test crowd surges and ride outages on a virtual copy of your Digital Model.
+          {% else %}
+            Upload a dataset to run What-If simulations on your Digital Model.
+          {% endif %}
+        </p>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 0.75rem;">
+        <span style="font-size: 0.75rem; color: var(--navy-muted);">Part of AI Agent Workflow</span>
+        <a href="{{ url_for('ai_agent') }}" class="btn btn-outline" style="padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 700; text-decoration: none;">
+          AI Agent Workflow →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXCEL FORMAT MODAL -->
+  <div id="excelFormatModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 9999; justify-content: center; align-items: center; padding: 1rem;">
+    <div style="background: #ffffff; border-radius: 18px; max-width: 680px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); border: 1px solid #e2e8f0; animation: modalPop 0.25s ease-out;">
+      <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0; font-weight: 800;">📋 Excel Dataset Structure (.xlsx)</h3>
+          <p style="font-size: 0.8rem; color: var(--navy-muted); margin: 0.2rem 0 0 0;">Multi-sheet format for ParkOps Theme Park Digital Model</p>
+        </div>
+        <button type="button" onclick="closeExcelFormatModal()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--navy-muted);">✕</button>
+      </div>
+
+      <div style="padding: 1.25rem 1.5rem; overflow-y: auto; font-size: 0.82rem; color: var(--navy-dark);">
+        <div style="margin-bottom: 1rem; background: #f8fafc; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #2563eb;">
+          <strong>Sheet 1: Park</strong>
+          <div style="font-size: 0.75rem; color: var(--navy-muted); margin-top: 0.25rem;">Columns: <code>name</code>, <code>location</code>, <code>capacity</code>, <code>current_visitors</code>, <code>weather</code>, <code>temperature</code></div>
+        </div>
+
+        <div style="margin-bottom: 1rem; background: #f8fafc; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #10b981;">
+          <strong>Sheet 2: Zones</strong>
+          <div style="font-size: 0.75rem; color: var(--navy-muted); margin-top: 0.25rem;">Columns: <code>name</code>, <code>capacity</code>, <code>current_visitors</code>, <code>x</code>, <code>y</code>, <code>width</code>, <code>height</code>, <code>description</code></div>
+        </div>
+
+        <div style="margin-bottom: 1rem; background: #f8fafc; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #f59e0b;">
+          <strong>Sheet 3: Rides</strong>
+          <div style="font-size: 0.75rem; color: var(--navy-muted); margin-top: 0.25rem;">Columns: <code>name</code>, <code>zone</code>, <code>capacity_per_hour</code>, <code>queue</code>, <code>average_wait_time</code>, <code>utilization</code>, <code>status</code>, <code>x</code>, <code>y</code>, <code>icon</code></div>
+        </div>
+
+        <div style="margin-bottom: 1rem; background: #f8fafc; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #8b5cf6;">
+          <strong>Sheet 4: Facilities</strong>
+          <div style="font-size: 0.75rem; color: var(--navy-muted); margin-top: 0.25rem;">Columns: <code>name</code>, <code>type</code>, <code>zone</code>, <code>capacity</code>, <code>current_demand</code>, <code>status</code>, <code>x</code>, <code>y</code>, <code>icon</code></div>
+        </div>
+      </div>
+
+      <div style="padding: 1rem 1.5rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+        <a href="{{ url_for('api_park_data_template') }}" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.82rem; text-decoration: none; color: #2563eb; border-color: #93c5fd;">
+          📥 Download Template (.xlsx)
+        </a>
+        <button type="button" class="btn btn-primary" onclick="closeExcelFormatModal()" style="padding: 0.5rem 1.25rem; font-size: 0.82rem;">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block page_scripts %}
+{% if park_state and park_state.has_data %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  renderDashboardCharts();
+});
+
+function openExcelFormatModal() {
+  document.getElementById('excelFormatModal').style.display = 'flex';
+}
+
+function closeExcelFormatModal() {
+  document.getElementById('excelFormatModal').style.display = 'none';
+}
+
+function renderDashboardCharts() {
+  const ctx1 = document.getElementById('visitorFlowChart');
+  if (ctx1) {
+    new Chart(ctx1, {
+      type: 'line',
+      data: {
+        labels: ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM'],
+        datasets: [
+          {
+            label: 'Actual Visitors',
+            data: [3200, 5400, 7800, 10200, 11800, {{ park_state.visitors }}, null, null, null, null],
+            borderColor: '#eb6080',
+            backgroundColor: 'rgba(235, 96, 128, 0.15)',
+            fill: true,
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: 4,
+            pointBackgroundColor: '#eb6080'
+          },
+          {
+            label: 'AI Predicted Influx',
+            data: [3200, 5400, 7800, 10200, 11800, {{ park_state.visitors }}, 14200, 16800, 15300, 11000],
+            borderColor: '#9333ea',
+            borderDash: [5, 5],
+            backgroundColor: 'transparent',
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
+          x: { grid: { display: false }, ticks: { color: '#64748b' } }
+        }
+      }
+    });
+  }
+
+  const ctx2 = document.getElementById('queueTrendChart');
+  if (ctx2) {
+    new Chart(ctx2, {
+      type: 'line',
+      data: {
+        labels: ['9 AM', '11 AM', '1 PM', '3 PM', '5 PM', '6 PM'],
+        datasets: [{
+          label: 'Queue (mins)',
+          data: [12, 22, 28, {{ park.avg_queue_time if park.avg_queue_time is defined else 24 }}, 42, 25],
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245, 158, 11, 0.12)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2.5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
+          x: { grid: { display: false }, ticks: { color: '#64748b' } }
+        }
+      }
+    });
+  }
+
+  const ctx3 = document.getElementById('crowdDensityChart');
+  if (ctx3) {
+    new Chart(ctx3, {
+      type: 'bar',
+      data: {
+        labels: [{% for z in zones %}'{{ z.name }}',{% endfor %}],
+        datasets: [{
+          label: 'Density %',
+          data: [{% for z in zones %}{{ z.occupancy_pct }},{% endfor %}],
+          backgroundColor: [{% for z in zones %}'{{ z.color }}',{% endfor %}],
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { max: 100, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
+          x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } }
+        }
+      }
+    });
+  }
+
+  const ctx4 = document.getElementById('rideUtilizationChart');
+  if (ctx4) {
+    new Chart(ctx4, {
+      type: 'bar',
+      data: {
+        labels: [{% for r in rides %}'{{ r.name }}',{% endfor %}],
+        datasets: [{
+          label: 'Utilization %',
+          data: [{% for r in rides %}{{ r.utilization }},{% endfor %}],
+          backgroundColor: ['#0284c7', '#10b981', '#94a3b8', '#8b5cf6', '#ec4899', '#f59e0b'],
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { max: 100, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
+          y: { grid: { display: false }, ticks: { color: '#64748b' } }
+        }
+      }
+    });
+  }
+}
+</script>
+{% else %}
+<script>
+function openExcelFormatModal() {
+  document.getElementById('excelFormatModal').style.display = 'flex';
+}
+function closeExcelFormatModal() {
+  document.getElementById('excelFormatModal').style.display = 'none';
+}
+</script>
+{% endif %}
+<style>
+@keyframes modalPop {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+</style>
+{% endblock %}

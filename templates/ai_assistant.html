@@ -1,0 +1,241 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}AI Operational Assistant — ParkOps{% endblock %}
+
+{% block dashboard_content %}
+<div class="dash-welcome-banner" style="margin-bottom: 1.5rem;">
+  <div class="welcome-text-side">
+    <h1>AI Operational Assistant & Decision Support</h1>
+    <p>Real-time situation awareness, neural predictive analytics, and automated action recommendations powered by Gemini AI.</p>
+  </div>
+  <div class="welcome-badge-side">
+    <span class="live-pill"><span class="pulse-dot"></span> AI Agent Online (Gemini / Neural)</span>
+  </div>
+</div>
+
+<!-- 4-STAGE OPERATIONAL PIPELINE BANNER -->
+<div class="dash-card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+    <h3 style="font-size: 1rem; color: var(--navy-dark); margin: 0;">Autonomous 4-Stage Decision Workflow</h3>
+    <span style="font-size: 0.8rem; color: var(--navy-muted);">Real-Time Continuous Loop</span>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+    <div style="background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 10px; padding: 0.75rem 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; color: #1d4ed8; font-size: 0.85rem; margin-bottom: 0.2rem;">
+        <span>👁️</span> 1. Monitor
+      </div>
+      <p style="font-size: 0.75rem; color: var(--navy-dark); margin: 0;">Ingesting turnstile, queue and facility IoT telemetry.</p>
+    </div>
+
+    <div style="background: rgba(167, 139, 250, 0.12); border: 1px solid rgba(167, 139, 250, 0.25); border-radius: 10px; padding: 0.75rem 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; color: #6d28d9; font-size: 0.85rem; margin-bottom: 0.2rem;">
+        <span>🔮</span> 2. Predict
+      </div>
+      <p style="font-size: 0.75rem; color: var(--navy-dark); margin: 0;">Forecasting 1-4 hour gate surges and dwell bottlenecks.</p>
+    </div>
+
+    <div style="background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 10px; padding: 0.75rem 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; color: #b45309; font-size: 0.85rem; margin-bottom: 0.2rem;">
+        <span>🧪</span> 3. Simulate
+      </div>
+      <p style="font-size: 0.75rem; color: var(--navy-dark); margin: 0;">Testing virtual reroutes in the Digital Model sandbox.</p>
+    </div>
+
+    <div style="background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: 10px; padding: 0.75rem 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; color: #047857; font-size: 0.85rem; margin-bottom: 0.2rem;">
+        <span>💡</span> 4. Recommend
+      </div>
+      <p style="font-size: 0.75rem; color: var(--navy-dark); margin: 0;">Delivering verified actions to park operators.</p>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT INTERFACE & CONTEXT SIDEBAR -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; height: 600px;">
+  
+  <!-- CHAT WINDOW -->
+  <div class="dash-card" style="display: flex; flex-direction: column; padding: 0; overflow: hidden; height: 100%;">
+    
+    <!-- Chat Header -->
+    <div style="padding: 1rem 1.25rem; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center; background: white;">
+      <div style="display: flex; align-items: center; gap: 0.6rem;">
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--pink-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+          🤖
+        </div>
+        <div>
+          <h3 style="font-size: 0.95rem; color: var(--navy-dark); margin: 0;">ParkOps AI Decision Engine</h3>
+          <span style="font-size: 0.75rem; color: #059669; font-weight: 600;">● Active & Listening to Park Telemetry</span>
+        </div>
+      </div>
+      <button class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="clearChat()">Clear History</button>
+    </div>
+
+    <!-- Messages Scroll Container -->
+    <div id="chatMessages" style="flex: 1; padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; background: #fafcff;">
+      
+      <!-- System Greeting Message -->
+      <div class="chat-bubble-ai" style="display: flex; gap: 0.75rem; max-width: 85%;">
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--pink-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0;">
+          🤖
+        </div>
+        <div style="background: white; border: 1px solid rgba(0,0,0,0.06); padding: 0.85rem 1rem; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); font-size: 0.85rem; color: var(--navy-dark); line-height: 1.5;">
+          <strong>Hello Operator!</strong> I am your ParkOps Operational Intelligence Agent. I continuously analyze the park's live digital model, forecast queues, and test what-if scenarios.<br><br>
+          How can I assist your operations today? You can ask about crowd surges, ride outages, or weather impact.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Quick Suggestions Bar -->
+    <div style="padding: 0.5rem 1rem; background: white; border-top: 1px solid rgba(0,0,0,0.04); display: flex; gap: 0.5rem; overflow-x: auto; white-space: nowrap;">
+      <button class="filter-chip" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;" onclick="sendQuickPrompt('What will happen if 5,000 additional visitors enter at 5 PM?')">⚡ +5,000 Guests at 5 PM?</button>
+      <button class="filter-chip" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;" onclick="sendQuickPrompt('What happens if the roller coaster breaks down?')">🎢 Roller Coaster Breakdown?</button>
+      <button class="filter-chip" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;" onclick="sendQuickPrompt('How should we prepare for sudden rain?')">🌧️ Sudden Rain Prep?</button>
+      <button class="filter-chip" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;" onclick="sendQuickPrompt('How do we reduce Food Court wait times?')">🍔 Food Court Bottleneck?</button>
+    </div>
+
+    <!-- Chat Input Box -->
+    <form id="aiChatForm" onsubmit="handleChatSubmit(event)" style="padding: 0.75rem 1rem; background: white; border-top: 1px solid rgba(0,0,0,0.06); display: flex; gap: 0.75rem;">
+      <input type="text" id="chatInput" placeholder="Ask ParkOps AI anything about current or future park operations..." style="flex: 1; padding: 0.65rem 1rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.85rem; outline: none;">
+      <button type="submit" id="chatSendBtn" class="btn btn-primary" style="padding: 0.65rem 1.25rem; font-size: 0.85rem; font-weight: 700;">
+        Send 🚀
+      </button>
+    </form>
+  </div>
+
+  <!-- RIGHT: REAL-TIME CONTEXT PANEL -->
+  <div class="dash-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+      <div class="card-header-row" style="margin-bottom: 0.75rem;">
+        <h3 style="font-size: 1rem; color: var(--navy-dark); margin: 0;">Live Park Telemetry Context</h3>
+      </div>
+      
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; background: var(--bg-soft-blue); padding: 1rem; border-radius: 10px; font-size: 0.8rem;">
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--navy-muted);">Active Guests:</span>
+          <strong>12,450 (49.8%)</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--navy-muted);">Fleet Operational:</span>
+          <strong style="color: #059669;">18 / 20 Rides</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--navy-muted);">Avg Wait Time:</span>
+          <strong>24 minutes</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--navy-muted);">Peak Congestion:</span>
+          <strong style="color: var(--pink-primary);">Adventure Zone</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--navy-muted);">Weather:</span>
+          <strong>Sunny, 24°C</strong>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.06);">
+      <h4 style="font-size: 0.85rem; color: var(--navy-dark); margin: 0 0 0.5rem 0;">AI Capabilities</h4>
+      <ul style="font-size: 0.75rem; color: var(--navy-muted); padding-left: 1.2rem; margin: 0; line-height: 1.6;">
+        <li>Continuous spatial bottleneck prediction</li>
+        <li>Dynamic crowd rerouting algorithms</li>
+        <li>Automated staff dispatch recommendations</li>
+        <li>What-if scenario validation</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+function sendQuickPrompt(text) {
+  document.getElementById('chatInput').value = text;
+  handleChatSubmit();
+}
+
+function clearChat() {
+  const container = document.getElementById('chatMessages');
+  container.innerHTML = `
+    <div class="chat-bubble-ai" style="display: flex; gap: 0.75rem; max-width: 85%;">
+      <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--pink-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0;">
+        🤖
+      </div>
+      <div style="background: white; border: 1px solid rgba(0,0,0,0.06); padding: 0.85rem 1rem; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); font-size: 0.85rem; color: var(--navy-dark); line-height: 1.5;">
+        <strong>History cleared.</strong> Ready for new operational queries!
+      </div>
+    </div>
+  `;
+}
+
+function handleChatSubmit(e) {
+  if(e) e.preventDefault();
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if(!msg) return;
+
+  input.value = '';
+  const container = document.getElementById('chatMessages');
+
+  // Append user bubble
+  const userDiv = document.createElement('div');
+  userDiv.style = "display: flex; justify-content: flex-end; width: 100%;";
+  userDiv.innerHTML = `
+    <div style="background: var(--pink-primary); color: white; padding: 0.75rem 1rem; border-radius: 12px; max-width: 80%; font-size: 0.85rem; line-height: 1.4; box-shadow: 0 2px 6px rgba(255, 107, 139, 0.2);">
+      ${msg}
+    </div>
+  `;
+  container.appendChild(userDiv);
+
+  // Append loading AI bubble
+  const loadingDiv = document.createElement('div');
+  loadingDiv.id = 'aiLoadingBubble';
+  loadingDiv.style = "display: flex; gap: 0.75rem; max-width: 85%;";
+  loadingDiv.innerHTML = `
+    <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--pink-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0;">
+      🤖
+    </div>
+    <div style="background: white; border: 1px solid rgba(0,0,0,0.06); padding: 0.75rem 1rem; border-radius: 12px; font-size: 0.85rem; color: var(--navy-muted);">
+      Thinking & simulating digital model parameters...
+    </div>
+  `;
+  container.appendChild(loadingDiv);
+  container.scrollTop = container.scrollHeight;
+
+  // Send request to Flask
+  fetch('/api/ai-chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: msg })
+  })
+  .then(r => r.json())
+  .then(data => {
+    const loadingElem = document.getElementById('aiLoadingBubble');
+    if(loadingElem) loadingElem.remove();
+
+    // Format AI response
+    let formatted = data.response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+
+    const aiDiv = document.createElement('div');
+    aiDiv.style = "display: flex; gap: 0.75rem; max-width: 85%;";
+    aiDiv.innerHTML = `
+      <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--pink-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0;">
+        🤖
+      </div>
+      <div style="background: white; border: 1px solid rgba(0,0,0,0.06); padding: 0.85rem 1rem; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); font-size: 0.85rem; color: var(--navy-dark); line-height: 1.5;">
+        ${formatted}
+        <div style="margin-top: 0.5rem; font-size: 0.7rem; color: var(--navy-muted); text-align: right;">Engine: ${data.source || 'ParkOps Neural Agent'}</div>
+      </div>
+    `;
+    container.appendChild(aiDiv);
+    container.scrollTop = container.scrollHeight;
+  })
+  .catch(err => {
+    const loadingElem = document.getElementById('aiLoadingBubble');
+    if(loadingElem) loadingElem.remove();
+    console.error(err);
+  });
+}
+</script>
+{% endblock %}

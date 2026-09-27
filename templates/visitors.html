@@ -1,0 +1,227 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Visitor Analytics — ParkOps{% endblock %}
+
+{% block dashboard_content %}
+<div class="dash-welcome-banner" style="margin-bottom: 1.5rem;">
+  <div class="welcome-text-side">
+    <h1 style="font-size: 1.65rem; color: var(--navy-dark); margin: 0 0 0.25rem 0;">👥 Visitor Flow & Crowd Dynamics</h1>
+    <p style="color: var(--navy-muted); font-size: 0.92rem; margin: 0;">
+      {% if park_state and park_state.has_data %}
+        Attendance patterns, turnstile gate influx, and crowd level breakdown for {{ park_state.park.name }}.
+      {% else %}
+        No visitor data available. Upload a park dataset to activate visitor telemetry.
+      {% endif %}
+    </p>
+  </div>
+  <div class="welcome-badge-side">
+    <span class="live-pill">
+      <span class="pulse-dot" style="background: {% if park_state and park_state.has_data %}#10b981{% else %}#f59e0b{% endif %};"></span>
+      {% if park_state and park_state.has_data %}Turnstile Telemetry Active{% else %}No Telemetry Data{% endif %}
+    </span>
+  </div>
+</div>
+
+{% if park_state and park_state.has_data %}
+<!-- VISITOR TOP KPI METRICS -->
+<div class="kpi-grid" style="margin-bottom: 1.5rem;">
+  <div class="kpi-card">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Current Visitors</span>
+      <span class="kpi-icon-wrap" style="background: rgba(255, 107, 139, 0.12); color: var(--pink-primary);">👥</span>
+    </div>
+    <div class="kpi-val">{{ "{:,}".format(park_state.visitors) }}</div>
+    <div class="kpi-badge-row">
+      <span class="kpi-trend up">In-Park Active</span>
+      <span class="kpi-subtext">Within park gates</span>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Park Capacity</span>
+      <span class="kpi-icon-wrap" style="background: rgba(96, 165, 250, 0.15); color: #2563eb;">📍</span>
+    </div>
+    <div class="kpi-val">{{ "{:,}".format(park_state.park.total_capacity) }}</div>
+    <div class="kpi-badge-row">
+      <span class="kpi-trend up">{{ stats.occupancy_pct }}% Occupancy</span>
+      <span class="kpi-subtext">Max allowed guest limit</span>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Overall Crowd Level</span>
+      <span class="kpi-icon-wrap" style="background: rgba(167, 139, 250, 0.15); color: #7c3aed;">⚡</span>
+    </div>
+    <div class="kpi-val" style="font-size: 1.5rem;">{{ stats.crowd_density }}</div>
+    <div class="kpi-badge-row">
+      <span class="kpi-subtext">Calculated from sector load</span>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Crowded Sectors</span>
+      <span class="kpi-icon-wrap" style="background: rgba(52, 211, 153, 0.12); color: #059669;">🏢</span>
+    </div>
+    <div class="kpi-val">{{ stats.crowded_zones_count }}</div>
+    <div class="kpi-badge-row">
+      <span class="kpi-subtext">High or Critical occupancy</span>
+    </div>
+  </div>
+</div>
+
+<!-- ANALYTICAL CHARTS GRID -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+  
+  <!-- CHART 1: HOURLY VISITOR INFLUX -->
+  <div class="dash-card">
+    <div class="card-header-row" style="margin-bottom: 0.75rem;">
+      <div>
+        <h2 style="font-size: 1.05rem; color: var(--navy-dark); margin: 0;">Hourly Visitor Flow (Actual vs Predicted)</h2>
+        <p style="font-size: 0.8rem; color: var(--navy-muted); margin: 0.2rem 0 0 0;">Check-ins vs Digital Model forecast</p>
+      </div>
+    </div>
+    <div style="height: 240px;">
+      <canvas id="visitorsHourlyChart"></canvas>
+    </div>
+  </div>
+
+  <!-- CHART 2: VISITORS BY PARK ZONE -->
+  <div class="dash-card">
+    <div class="card-header-row" style="margin-bottom: 0.75rem;">
+      <div>
+        <h2 style="font-size: 1.05rem; color: var(--navy-dark); margin: 0;">Zone Crowd Distribution</h2>
+        <p style="font-size: 0.8rem; color: var(--navy-muted); margin: 0.2rem 0 0 0;">Headcount per operational zone</p>
+      </div>
+    </div>
+    <div style="height: 240px;">
+      <canvas id="zoneVisitorsChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- ZONE DEMOGRAPHICS & CAPACITY TABLE -->
+<div class="dash-card" style="padding: 0; overflow: hidden;">
+  <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(0,0,0,0.06);">
+    <h2 style="font-size: 1.15rem; color: var(--navy-dark); margin: 0;">Zone Density & Turnstile Index</h2>
+    <p style="font-size: 0.8rem; color: var(--navy-muted); margin: 0.2rem 0 0 0;">Real-time pedestrian density sensor breakdown</p>
+  </div>
+  <table class="dash-table" style="width: 100%; text-align: left; border-collapse: collapse;">
+    <thead>
+      <tr style="background: var(--bg-soft-blue); color: var(--navy-dark); font-size: 0.85rem;">
+        <th style="padding: 1rem 1.5rem;">Zone Name</th>
+        <th style="padding: 1rem;">Current Visitors</th>
+        <th style="padding: 1rem;">Max Capacity</th>
+        <th style="padding: 1rem;">Density Status</th>
+        <th style="padding: 1rem 1.5rem;">Capacity Occupancy</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for zone in zones %}
+      {% set vis_count = zone.current_visitors if zone.current_visitors is defined else 0 %}
+      {% set pct = zone.occupancy_pct if zone.occupancy_pct is defined else ((vis_count / max(1, zone.capacity) * 100) | round | int) %}
+      {% set c_level = zone.crowd_level if zone.crowd_level is defined else 'Low' %}
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.04);">
+        <td style="padding: 1rem 1.5rem; font-weight: 700; color: var(--navy-dark);">{{ zone.name }}</td>
+        <td style="padding: 1rem; color: var(--navy-dark); font-weight: 600;">{{ "{:,}".format(vis_count) }}</td>
+        <td style="padding: 1rem; color: var(--navy-muted);">{{ "{:,}".format(zone.capacity) }}</td>
+        <td style="padding: 1rem;"><span class="badge-status badge-{{ c_level | lower }}">{{ c_level }}</span></td>
+        <td style="padding: 1rem 1.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+              <div style="width: {{ pct }}%; height: 100%; background: {{ zone.color if zone.color else '#10b981' }}; border-radius: 4px;"></div>
+            </div>
+            <span style="font-size: 0.85rem; font-weight: 700; color: var(--navy-dark);">{{ pct }}%</span>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<!-- EMPTY STATE FOR VISITORS PAGE (SECTION 11 OF SPEC) -->
+<div class="dash-card" style="text-align: center; padding: 3rem 1.5rem;">
+  <div style="font-size: 3.5rem; margin-bottom: 0.75rem;">👥</div>
+  <h2 style="font-size: 1.35rem; color: var(--navy-dark); margin: 0 0 0.5rem 0; font-weight: 800;">
+    No visitor data available.
+  </h2>
+  <p style="font-size: 0.9rem; color: var(--navy-muted); margin: 0 0 1.5rem 0;">
+    Upload a park dataset to activate visitor telemetry and crowd flow analysis.
+  </p>
+
+  <div style="display: flex; justify-content: center; gap: 1.5rem; margin-bottom: 1.5rem; font-size: 0.88rem; color: var(--navy-muted);">
+    <span>Current Visitors: <strong>0</strong></span>
+    <span>Park Capacity: <strong>0</strong></span>
+    <span>Crowd Levels: <strong>0</strong></span>
+  </div>
+
+  <a href="{{ url_for('park_data') }}" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-weight: 800; font-size: 0.95rem; text-decoration: none;">
+    📁 Upload Park Dataset
+  </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block page_scripts %}
+{% if park_state and park_state.has_data %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  new Chart(document.getElementById('visitorsHourlyChart'), {
+    type: 'line',
+    data: {
+      labels: ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM'],
+      datasets: [
+        {
+          label: 'Actual Turnstile Count',
+          data: [1800, 3600, 5200, 7100, 8400, {{ park_state.visitors }}, null, null, null, null],
+          borderColor: '#ff6b8b',
+          backgroundColor: 'rgba(255, 107, 139, 0.15)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 3
+        },
+        {
+          label: 'Predicted Surge',
+          data: [1800, 3600, 5200, 7100, 8400, {{ park_state.visitors }}, 10400, 12100, 11200, 8200],
+          borderColor: '#a78bfa',
+          borderDash: [5, 5],
+          backgroundColor: 'rgba(167, 139, 250, 0.05)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+      scales: { y: { grid: { color: 'rgba(0,0,0,0.04)' } }, x: { grid: { display: false } } }
+    }
+  });
+
+  new Chart(document.getElementById('zoneVisitorsChart'), {
+    type: 'doughnut',
+    data: {
+      labels: [{% for z in zones %}'{{ z.name }}',{% endfor %}],
+      datasets: [{
+        data: [{% for z in zones %}{{ z.current_visitors }},{% endfor %}],
+        backgroundColor: ['#ff6b8b', '#a78bfa', '#60a5fa', '#34d399', '#f59e0b', '#ec4899'],
+        borderWidth: 2,
+        borderColor: '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { boxWidth: 12 } } }
+    }
+  });
+});
+</script>
+{% endif %}
+{% endblock %}
